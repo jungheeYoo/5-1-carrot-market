@@ -99,54 +99,102 @@
 //   );
 // }
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 SERVER ACTIONS
+// // ✅ 5-1. Server Actions
+
+// // 🔶 NextJS 의 Server Action 을 사용해 form 처리하는 방법
+// // router 핸들러를 생성하고 POST 를 fetch 하는 대신
+// // Login 컴포넌트 안에서 handleForm 함수 만듦
+
+// import FormButton from '@/components/form-btn';
+// import FormInput from '@/components/form-input';
+// import SocialLogin from '@/components/social-login';
+
+// // 🔹 위에 적었던 'use client'; 처럼 use server 적어줌
+// // use server는 이 함수가 서버에서만 실행되도록 만들어 줌
+// // Server action 은 async function(비동기 함수)여야 함
+
+// // 🔹 네트워크 탭으로 이동하면 클릭할 때 무슨일이 일어나는지 볼 수 있다
+// // 클릭하면 POST request 가 발생
+// // 즉, NextJS 가 POST method를 위한 route 핸들러를 만든다는 뜻
+// // NextJS 가 이런 작업을 자동으로 하고 있음. 오직 use server 만 적으면 된다
+// // 그럼 NextJS 는 이 코드가 console.log('i run in the server baby!');
+// // 로그인 form 이 submit 되었을 때 실행되어야 한다는 것을 알 수 있다
+// // 조금 더 자세히 보면 Payload 를 볼 수 있는데 여기에는 보이는 데이터가 들어있지 않다
+// // ✨ 그 이유는 Server action 으로 작업할 때는 input 에는 name 속성이 필요하다
+
+// // 🔹 로그인 다시 하고 네트워크 탭을 다시 보면 Sever Action 을 통해서 데이터를 즉시 전송함
+// // 내 데이터가 자동으로 백엔드로 보내짐!!
+// // state 로 데이터를 모을 필요도 없고 onChange 나 fetch 할 필요도 없음!
+
+// // 🔹 넘겨진 데이터 가져오는 방법
+// // Server action 을 만드는 순간, () 여기서 데이터를 받을 수 있다
+// // 데이터 타입은 FormData
+// // 이건 FormData constructor 내부에서 오는 것
+// // formData 이름은 상관없고: 타입은 FormData 이어야 함
+
+// // useState 나 어떤 ReactJS 의 기능은 사용하지 않고
+// // useEffect 도 없고 useState 도 없고 onchange 도 없음
+// // 하지만 백엔드에서 실행되고 있다
+// // route 핸들러를 만들 필요가 없이 async function handleForm(formData: FormData) {} 여기서 다 일어남
+// // NextJS 가 여기 코드를 route 핸들러 안에 넣을 것임
+
+// export default function Login() {
+//   // 🔶 Server action
+//   async function handleForm(formData: FormData) {
+//     // const handleForm = async() => { 화살표 함수
+//     'use server';
+//     console.log(formData.get('email'), formData.get('password'));
+//     console.log('i run in the server baby!');
+//   }
+//   return (
+//     <div className="flex flex-col gap-10 py-8 px-6">
+//       <div className="flex flex-col gap-2 *:font-medium">
+//         <h1 className="text-2xl">안녕하세요!</h1>
+//         <h2 className="text-xl">Log in with email and password.</h2>
+//       </div>
+//       {/* 🔶 handleForm 복사해 form 에 action 에 handleForm 넣어줌 */}
+//       <form action={handleForm} className="flex flex-col gap-3">
+//         <FormInput
+//           name="email"
+//           type="email"
+//           placeholder="Email"
+//           required
+//           errors={[]}
+//         />
+//         <FormInput
+//           name="password"
+//           type="password"
+//           placeholder="Password"
+//           required
+//           errors={[]}
+//         />
+//         <FormButton loading={false} text="Log in" />
+//       </form>
+//       <SocialLogin />
+//     </div>
+//   );
+// }
+
 //////////////////////////////////////////////////
 // ✅ 2024 SERVER ACTIONS
-// ✅ 5-1. Server Actions
+// ✅ 5-2. useFormStatus
+// Server Action 경과와 UI가 서로 소통하는 방법
+// 예를 들어, Server Action 이 로딩중일 때 버튼을 비활성화
 
-// 🔶 NextJS 의 Server Action 을 사용해 form 처리하는 방법
-// router 핸들러를 생성하고 POST 를 fetch 하는 대신
-// Login 컴포넌트 안에서 handleForm 함수 만듦
+// 사용자에게 이 Server Action 에 시간이 좀 걸린다는 것을 알려줘야 함
+// 그리고 버튼을 비활성화 해야 함
 
 import FormButton from '@/components/form-btn';
 import FormInput from '@/components/form-input';
 import SocialLogin from '@/components/social-login';
 
-// 🔹 위에 적었던 'use client'; 처럼 use server 적어줌
-// use server는 이 함수가 서버에서만 실행되도록 만들어 줌
-// Server action 은 async function(비동기 함수)여야 함
-
-// 🔹 네트워크 탭으로 이동하면 클릭할 때 무슨일이 일어나는지 볼 수 있다
-// 클릭하면 POST request 가 발생
-// 즉, NextJS 가 POST method를 위한 route 핸들러를 만든다는 뜻
-// NextJS 가 이런 작업을 자동으로 하고 있음. 오직 use server 만 적으면 된다
-// 그럼 NextJS 는 이 코드가 console.log('i run in the server baby!');
-// 로그인 form 이 submit 되었을 때 실행되어야 한다는 것을 알 수 있다
-// 조금 더 자세히 보면 Payload 를 볼 수 있는데 여기에는 보이는 데이터가 들어있지 않다
-// ✨ 그 이유는 Server action 으로 작업할 때는 input 에는 name 속성이 필요하다
-
-// 🔹 로그인 다시 하고 네트워크 탭을 다시 보면 Sever Action 을 통해서 데이터를 즉시 전송함
-// 내 데이터가 자동으로 백엔드로 보내짐!!
-// state 로 데이터를 모을 필요도 없고 onChange 나 fetch 할 필요도 없음!
-
-// 🔹 넘겨진 데이터 가져오는 방법
-// Server action 을 만드는 순간, () 여기서 데이터를 받을 수 있다
-// 데이터 타입은 FormData
-// 이건 FormData constructor 내부에서 오는 것
-// formData 이름은 상관없고: 타입은 FormData 이어야 함
-
-// useState 나 어떤 ReactJS 의 기능은 사용하지 않고
-// useEffect 도 없고 useState 도 없고 onchange 도 없음
-// 하지만 백엔드에서 실행되고 있다
-// route 핸들러를 만들 필요가 없이 async function handleForm(formData: FormData) {} 여기서 다 일어남
-// NextJS 가 여기 코드를 route 핸들러 안에 넣을 것임
-
 export default function Login() {
-  // 🔶 Server action
   async function handleForm(formData: FormData) {
-    // const handleForm = async() => { 화살표 함수
     'use server';
-    console.log(formData.get('email'), formData.get('password'));
-    console.log('i run in the server baby!');
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    console.log('logged in!');
   }
   return (
     <div className="flex flex-col gap-10 py-8 px-6">
@@ -154,7 +202,6 @@ export default function Login() {
         <h1 className="text-2xl">안녕하세요!</h1>
         <h2 className="text-xl">Log in with email and password.</h2>
       </div>
-      {/* 🔶 handleForm 복사해 form 에 action 에 handleForm 넣어줌 */}
       <form action={handleForm} className="flex flex-col gap-3">
         <FormInput
           name="email"
@@ -170,7 +217,7 @@ export default function Login() {
           required
           errors={[]}
         />
-        <FormButton loading={false} text="Log in" />
+        <FormButton text="Log in" />
       </form>
       <SocialLogin />
     </div>
