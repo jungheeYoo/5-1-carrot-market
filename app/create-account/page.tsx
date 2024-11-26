@@ -96,41 +96,95 @@
 //   );
 // }
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 UPDATE Authentication UI
+// // 사용자가 애플리케이션이나 웹사이트에 접근하기 위한 인증 과정을 거칠 때 제공되는 사용자 인터페이스
+// // ✅ 4-3. Log in Screen
+// // 소셜 로그인 버튼 분리
+// // 분리 후 계정 생성하는 화면과 로그인 화면에서 모두 사용
+
+// import FormButton from '@/components/form-btn';
+// import FormInput from '@/components/form-input';
+// import SocialLogin from '@/components/social-login';
+
+// // Create Account Screen
+// export default function CreateAccount() {
+//   return (
+//     <div className="flex flex-col gap-10 py-8 px-6">
+//       <div className="flex flex-col gap-2 *:font-medium">
+//         <h1 className="text-2xl">안녕하세요!</h1>
+//         <h2 className="text-xl">Fill in the form below to join!</h2>
+//       </div>
+//       <form className="flex flex-col gap-3">
+//         <FormInput type="text" placeholder="Username" required errors={[]} />
+//         <FormInput type="email" placeholder="Email" required errors={[]} />
+//         <FormInput
+//           type="password"
+//           placeholder="Password"
+//           required
+//           errors={[]}
+//         />
+//         <FormInput
+//           type="password"
+//           placeholder="Confirm Password"
+//           required
+//           errors={[]}
+//         />
+//         <FormButton loading={false} text="Create account" />
+//       </form>
+//       <SocialLogin />
+//     </div>
+//   );
+// }
+
 //////////////////////////////////////////////////
-// ✅ 2024 UPDATE Authentication UI
-// 사용자가 애플리케이션이나 웹사이트에 접근하기 위한 인증 과정을 거칠 때 제공되는 사용자 인터페이스
-// ✅ 4-3. Log in Screen
-// 소셜 로그인 버튼 분리
-// 분리 후 계정 생성하는 화면과 로그인 화면에서 모두 사용
+// ✅ 2024 UPDATE Validation
+// ✅ 6-0. Introduction to Zod
+
+// 🔶 zod 유효성 검사 라이브러리 사용
+// 사용자가 Server action 으로 보내는 데이터의 유효성 검사에 도움을 줌
+// action 을 dispatch 로 변경. action 을 처리한다는 의미
+// FormButton 은 더이상 loading 갖지 않음. loading={false} 삭제
+// 모든 FormInput 에 name 이 있어야 함. 왜냐면 Server action 에 form 데이터를 넘겨줘야 하기 때문에
+// errors={[]} 일단 삭제
+
+'use client';
 
 import FormButton from '@/components/form-btn';
 import FormInput from '@/components/form-input';
 import SocialLogin from '@/components/social-login';
+import { useFormState } from 'react-dom';
+import { createAccount } from './actions';
 
-// Create Account Screen
 export default function CreateAccount() {
+  const [state, dispatch] = useFormState(createAccount, null);
   return (
     <div className="flex flex-col gap-10 py-8 px-6">
       <div className="flex flex-col gap-2 *:font-medium">
         <h1 className="text-2xl">안녕하세요!</h1>
         <h2 className="text-xl">Fill in the form below to join!</h2>
       </div>
-      <form className="flex flex-col gap-3">
-        <FormInput type="text" placeholder="Username" required errors={[]} />
-        <FormInput type="email" placeholder="Email" required errors={[]} />
+      <form action={dispatch} className="flex flex-col gap-3">
         <FormInput
+          name="username"
+          type="text"
+          placeholder="Username"
+          required
+        />
+        <FormInput name="email" type="email" placeholder="Email" required />
+        <FormInput
+          name="password"
           type="password"
           placeholder="Password"
           required
-          errors={[]}
         />
         <FormInput
+          name="confirm_password"
           type="password"
           placeholder="Confirm Password"
           required
-          errors={[]}
         />
-        <FormButton loading={false} text="Create account" />
+        <FormButton text="Create account" />
       </form>
       <SocialLogin />
     </div>

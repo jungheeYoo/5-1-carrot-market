@@ -177,45 +177,179 @@
 //   );
 // }
 
-//////////////////////////////////////////////////
-// ✅ 2024 SERVER ACTIONS
-// ✅ 5-2. useFormStatus
-// Server Action 경과와 UI가 서로 소통하는 방법
-// 예를 들어, Server Action 이 로딩중일 때 버튼을 비활성화
+// //////////////////////////////////////////////////
+// // ✅ 2024 SERVER ACTIONS
+// // ✅ 5-2. useFormStatus
+// // Server Action 경과와 UI가 서로 소통하는 방법
+// // 예를 들어, Server Action 이 로딩중일 때 버튼을 비활성화
 
-// 사용자에게 이 Server Action 에 시간이 좀 걸린다는 것을 알려줘야 함
-// 그리고 버튼을 비활성화 해야 함
+// // 사용자에게 이 Server Action 에 시간이 좀 걸린다는 것을 알려줘야 함
+// // 그리고 버튼을 비활성화 해야 함
+
+// import FormButton from '@/components/form-btn';
+// import FormInput from '@/components/form-input';
+// import SocialLogin from '@/components/social-login';
+
+// export default function Login() {
+//   async function handleForm(formData: FormData) {
+//     'use server';
+//     await new Promise((resolve) => setTimeout(resolve, 5000));
+//     console.log('logged in!');
+//   }
+//   return (
+//     <div className="flex flex-col gap-10 py-8 px-6">
+//       <div className="flex flex-col gap-2 *:font-medium">
+//         <h1 className="text-2xl">안녕하세요!</h1>
+//         <h2 className="text-xl">Log in with email and password.</h2>
+//       </div>
+//       <form action={handleForm} className="flex flex-col gap-3">
+//         <FormInput
+//           name="email"
+//           type="email"
+//           placeholder="Email"
+//           required
+//           errors={[]}
+//         />
+//         <FormInput
+//           name="password"
+//           type="password"
+//           placeholder="Password"
+//           required
+//           errors={[]}
+//         />
+//         <FormButton text="Log in" />
+//       </form>
+//       <SocialLogin />
+//     </div>
+//   );
+// }
+
+// //////////////////////////////////////////////////
+// // ✅ 2024 SERVER ACTIONS
+// // ✅ 5-3. useFormState
+// // Server Action 의 결과를 UI로 전달하는 방법
+
+// 'use client';
+
+// import FormButton from '@/components/form-btn';
+// import FormInput from '@/components/form-input';
+// import SocialLogin from '@/components/social-login';
+// import { useFormState } from 'react-dom';
+// import { handleForm } from './actions';
+
+// // Server Action에서 오류가 발생한다면? 아이디나 비밀번호가 틀렸다면? 이럴 때 useFormState hook을 사용
+// // 이 hook을 사용하기 위해서는 결과를 알고 싶은 action을 인자로 넘겨줘야 함
+// // 예를 들어 이 action이 뭔가 return 하도록 해봄
+// // 잘못된 비밀번호라는 error 를 보낸다
+// // 그리고 이 action 을 useFormState 에게 넘겨줌
+
+// export default function Login() {
+//   // 🔶 배열의 첫 번째 아이템은 state 가 됨
+//   // 이 경우에, stat는 action의 return 값이 될 것임
+//   // 두 번째 아이템은 action
+//   // 이것은 handleForm 이 함수 action을 실행시킬 것임
+//   // useState 를 사용하는 것과 비슷함
+//   // action을 useFormState로 넘겨주면
+//   // useFormState hook은 action의 결과를 돌려 줌
+//   // 그리고 action 을 실행하는 트리거도 준다
+//   // useFormState 을 쓴다는 것은 UI 를 interactive 하게 만들겠다는 것이다
+//   // 왜냐하면, 사용자에게 에러 메세지를 보여주길 원하기 때문이다
+//   // 그럼 이것은 interactive UI 이다. 에러는 나중에 보일테니까
+//   // 따라서 이것을 client component 로 바꿔줘야 함
+//   // 하지만 에러남. 이유는 client component 내부에서 use server 를 선언할 수 없기 때문이다
+//   // 이 use server action 은 server component 안에서만 작동한다
+//   // ✨ actions.ts 라는 새로운 파일 만들어서 옮겨줌 use server 옮겨줌
+//   // client component 에서도 server action 을 호출할 수 있지만 그 로직이 여기 있을 수는 없다
+//   // use server 로 시작하는, 분리된 파일에 있어야 함
+//   // 하지만 타입스크립트가 여전히 불평한다
+//   // 그 이유는 useFormState 를 쓸 때 실행하고자 하는 action 을 전달하는 것 뿐만 아니라
+//   // 초기값도 필수적으로 제공해야 한다
+//   // useState 에 초기값을 넘겨줄 수 있는 것 처럼 useFormState 에도 초기 값을 넘겨줘야 한다
+//   // useFormState에도 초기값도 필수적으로 넘겨 줘야 함
+//   // 보통은 null을 넘김
+//   // 그래도 타입스크립트가 불명하는데
+//   // 이 에러는 useFormState에도 를 사용할 때 하나가 아니라 두 개의 인자를 사용해서 action 을 호출해서 발생한건데
+//   // 이 hook 을 사용하기 전에는 여기 form 의 hook 이 아니라 우리가 만든 action 을 넣었을 때는
+//   // NextJS 가 우리 action 을 호출하느 방식을 생각해보면 이런식이다
+//   // handleForm(formData)
+//   // 전에 본 것 처럼 이렇게 formData와 함께 호출될 것이다
+//   // 문제는 이제 useFormState 을 사용하고 있다는 것이다
+//   // 이제 action 은 실제로는 action 의 이전 state 와 함께 호출될 것이다
+//   // state 를 return 하는 action 은 유용하게 사용될 수 있다
+//   // 사용자가 submit 한 다음, 다시 action 을 트리거 할 때 이전의 state 도 가져올 수 있기 때문이다
+//   // 지금 알아야 할 것은, useFormState 가 aciton 을 호출하면
+//   // action은 formData와 함께 이전에 반환한 state, 또는 처음에 설정해둔 state 와 실행될 것이다
+//   // action은 formData와 함께 호출되는데
+//   // 처음에는, 초기 값 state와 함께 호출되고
+//   // 다음부터는 이전 action에서 return된 state와 함께 호출 됨
+
+//   const [state, action] = useFormState(handleForm, null);
+//   return (
+//     <div className="flex flex-col gap-10 py-8 px-6">
+//       <div className="flex flex-col gap-2 *:font-medium">
+//         <h1 className="text-2xl">안녕하세요!</h1>
+//         <h2 className="text-xl">Log in with email and password.</h2>
+//       </div>
+//       {/* 만약에 여기에 handleForm을 그대로 넣어버리면
+//       useFormState을 쓰는 이유가 없다. 결과를 알 수 없다
+//       대신 우리가 만든 action을 useFormState에게 넘겨주고
+//       트리거를 받아서 action에 넘겨줌
+//       */}
+//       <form action={action} className="flex flex-col gap-3">
+//         <FormInput
+//           name="email"
+//           type="email"
+//           placeholder="Email"
+//           required
+//           errors={[]}
+//         />
+//         <FormInput
+//           name="password"
+//           type="password"
+//           placeholder="Password"
+//           required
+//           // 에러가 존재하지 않는다면, 빈 배열을 반환
+//           errors={state?.errors ?? []}
+//         />
+//         <FormButton text="Log in" />
+//       </form>
+//       <SocialLogin />
+//     </div>
+//   );
+// }
+
+//////////////////////////////////////////////////
+// ✅ 2024 UPDATE Validation
+// ✅ 6-0. Introduction to Zod
+
+// 🔶 zod 유효성 검사 라이브러리 사용
+// form-input 에러 수정. 이러면 errors 를 꼭 넣을 필요 없음
+// errors={[]} 에러 삭제
+
+'use client';
 
 import FormButton from '@/components/form-btn';
 import FormInput from '@/components/form-input';
 import SocialLogin from '@/components/social-login';
+import { useFormState } from 'react-dom';
+import { handleForm } from './actions';
 
 export default function Login() {
-  async function handleForm(formData: FormData) {
-    'use server';
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-    console.log('logged in!');
-  }
+  // use server 옮겨줌
+  const [state, action] = useFormState(handleForm, null);
   return (
     <div className="flex flex-col gap-10 py-8 px-6">
       <div className="flex flex-col gap-2 *:font-medium">
         <h1 className="text-2xl">안녕하세요!</h1>
         <h2 className="text-xl">Log in with email and password.</h2>
       </div>
-      <form action={handleForm} className="flex flex-col gap-3">
-        <FormInput
-          name="email"
-          type="email"
-          placeholder="Email"
-          required
-          errors={[]}
-        />
+      <form action={action} className="flex flex-col gap-3">
+        <FormInput name="email" type="email" placeholder="Email" required />
         <FormInput
           name="password"
           type="password"
           placeholder="Password"
           required
-          errors={[]}
         />
         <FormButton text="Log in" />
       </form>
