@@ -137,16 +137,65 @@
 //   );
 // }
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 UPDATE Validation
+// // ✅ 6-0. Introduction to Zod
+
+// // 🔶 zod 유효성 검사 라이브러리 사용
+// // 사용자가 Server action 으로 보내는 데이터의 유효성 검사에 도움을 줌
+// // action 을 dispatch 로 변경. action 을 처리한다는 의미
+// // FormButton 은 더이상 loading 갖지 않음. loading={false} 삭제
+// // 모든 FormInput 에 name 이 있어야 함. 왜냐면 Server action 에 form 데이터를 넘겨줘야 하기 때문에
+// // errors={[]} 일단 삭제
+
+// 'use client';
+
+// import FormButton from '@/components/form-btn';
+// import FormInput from '@/components/form-input';
+// import SocialLogin from '@/components/social-login';
+// import { useFormState } from 'react-dom';
+// import { createAccount } from './actions';
+
+// export default function CreateAccount() {
+//   const [state, dispatch] = useFormState(createAccount, null);
+//   return (
+//     <div className="flex flex-col gap-10 py-8 px-6">
+//       <div className="flex flex-col gap-2 *:font-medium">
+//         <h1 className="text-2xl">안녕하세요!</h1>
+//         <h2 className="text-xl">Fill in the form below to join!</h2>
+//       </div>
+//       <form action={dispatch} className="flex flex-col gap-3">
+//         <FormInput
+//           name="username"
+//           type="text"
+//           placeholder="Username"
+//           required
+//         />
+//         <FormInput name="email" type="email" placeholder="Email" required />
+//         <FormInput
+//           name="password"
+//           type="password"
+//           placeholder="Password"
+//           required
+//         />
+//         <FormInput
+//           name="confirm_password"
+//           type="password"
+//           placeholder="Confirm Password"
+//           required
+//         />
+//         <FormButton text="Create account" />
+//       </form>
+//       <SocialLogin />
+//     </div>
+//   );
+// }
+
 //////////////////////////////////////////////////
 // ✅ 2024 UPDATE Validation
-// ✅ 6-0. Introduction to Zod
-
-// 🔶 zod 유효성 검사 라이브러리 사용
-// 사용자가 Server action 으로 보내는 데이터의 유효성 검사에 도움을 줌
-// action 을 dispatch 로 변경. action 을 처리한다는 의미
-// FormButton 은 더이상 loading 갖지 않음. loading={false} 삭제
-// 모든 FormInput 에 name 이 있어야 함. 왜냐면 Server action 에 form 데이터를 넘겨줘야 하기 때문에
-// errors={[]} 일단 삭제
+// ✅ 6-1. Validation Errors
+// 모든 값 검사하기
+// 데이터 검증 에러를 다루는 방법
 
 'use client';
 
@@ -155,6 +204,19 @@ import FormInput from '@/components/form-input';
 import SocialLogin from '@/components/social-login';
 import { useFormState } from 'react-dom';
 import { createAccount } from './actions';
+
+// ✨ 타입스크립트는 매우 똑똑해서
+// page 로 와서 state 에 마우스를 올려보면
+// const state: typeToFlattenedError<{
+//   username: string;
+//   email: string;
+//   password: string;
+//   confirm_password: string;
+// }, string> | null | undefined
+// 이렇게 CreateAccount action 의 state 를 안다는 것을 볼 수 있고
+// 기본적으로 CreateAccount action 의 return 값이
+// zod 의 FlattenedError 타입이라는 것을 볼 수 있다
+// 이제 매우 쉽게 각 input 에 error 를 줄 수 있다
 
 export default function CreateAccount() {
   const [state, dispatch] = useFormState(createAccount, null);
@@ -170,19 +232,29 @@ export default function CreateAccount() {
           type="text"
           placeholder="Username"
           required
+          // ✨ 물음표를 넣는 이유는, 값이 string이거나 undefined일 수 있기 때문에
+          errors={state?.fieldErrors.username}
         />
-        <FormInput name="email" type="email" placeholder="Email" required />
+        <FormInput
+          name="email"
+          type="email"
+          placeholder="Email"
+          required
+          errors={state?.fieldErrors.email}
+        />
         <FormInput
           name="password"
           type="password"
           placeholder="Password"
           required
+          errors={state?.fieldErrors.password}
         />
         <FormInput
           name="confirm_password"
           type="password"
           placeholder="Confirm Password"
           required
+          errors={state?.fieldErrors.confirm_password}
         />
         <FormButton text="Create account" />
       </form>
@@ -190,3 +262,12 @@ export default function CreateAccount() {
     </div>
   );
 }
+
+// 🔥 정리
+// Zod 를 사용해서 에러를 catch 하고 있다
+// 먼저 모든 값을 검사하고, 그 에러를 사용자에게 return 한다
+// 실제로 검증하지 않고 zod 와 NesxtJS 가 모든 것을 해줌
+// 어떤 유효성 검사 로직도 작성하지 않고
+// FormInput 을 errors prop 을 받게 만들었고
+// errors prop 은 string array 이거나 아무 것도 없어야 함
+// 이제 Create accout 를 누르면 UI 에 에러 표시가 됨
