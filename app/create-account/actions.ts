@@ -242,44 +242,148 @@
 // // 이제 zod가 이 refine을 실행할 때 메세지를 표시해야 하는 경우 이 에러는 confirm_password 에러처럼 나타날 것이다.
 // // 이 path 는 field 이름과 동일해야 함
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 UPDATE Validation
+// // ✅ 6-3. Transformation
+// // 🔶 zod를 사용해서 데이터를 변환(transform) 하는 방법
+// // zod는 데이터를 검증하는 것 뿐만 아니라 변환하는 것도 가능
+// // 예를 들면 유저가 대문자로 입력해도 모든 것을 소문자로 바꿔주는 것
+
+// // 🔶 데이터 변환(transform) 하는 방법
+// // 🔹 .toLowerCase()
+// // 유저가 대문자로 입력해도 모든 것을 소문자로 바꿔주는 것
+
+// // 🔹 .trim()
+// // 유저가 시작과 끝에 공백을 넣었을 때 string 앞 뒤에 붙은 공백을 제거해줌.
+
+// // 🔹 .transform()
+// // refine 과정을 커스터마이징한 것과 마찬가지로 커스텀할 수 있음
+// // transform 함수는 기본적으로 refine 함수와 동일하게 작동함
+// // 첫 번째 argument 로 transform 할 대상을 줌. 이 경우에는 username
+// // 여기서 username 을 받고, refine 함수처럼 true or false 를 return 하는 것이 아니다
+// // 어떤 항목을 변환하고, 그 변환된 값을 리턴해야 함
+// // 이 함수는 반드시 무언가를 return 해야 함
+// // 작동 방식은 checkUsername 과 비슷함. 함수가 실행될 것이고, 함수의 첫 번째 argument 는
+// // validate / fefine / transform 하게 될 항목이다.
+// // 여기서 return 하는 것이 곧 그 항목의 최종 결과가 되는 것
+
+// // refine은 네가 refine하려는 대상을 넘겨줌
+// // validation의 성공 여부에 따라 true or false를 return 하면 됨
+// // transform 역시 네가 transform 하려는 대상을 넘겨줌
+// // 여기서는 true or false가 아니라 변환된 값을 return 하면 됨
+
+// 'use server';
+// import { z } from 'zod';
+
+// // ✨ 함수 따로 만듦
+// // 🔶 regular expression(정규 표현식) validator
+// // 비밀번호 정규 표현식 - 소문자, 대문자, 숫자, 특수문자
+// // 비밀번호가 소문자, 대문자, 숫자, 이 특수문자의 일부를 모두 포함하고 있는지 검사하는 것
+// // 정규표현식을 사용해서 유저가 강력한 비밀번호를 사용할 수 있도록 만드는 것
+// const passwordRegex = new RegExp(
+//   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*?[#?!@$%^&*-]).+$/
+// );
+
+// const checkUsername = (username: string) => !username.includes('potato');
+
+// const checkPasswords = ({
+//   password,
+//   confirm_password,
+// }: {
+//   password: string;
+//   confirm_password: string;
+// }) => password === confirm_password;
+
+// const formSchema = z
+//   .object({
+//     username: z
+//       .string({
+//         invalid_type_error: 'Username must be a stirng',
+//         required_error: 'Where is my username???',
+//       })
+//       .min(3, 'Way too short!!!')
+//       //.max(10, 'That is too loooooog!') 잠시 주석 처리
+//       .toLowerCase()
+//       .trim()
+//       .transform((username) => `🔥 ${username} 🔥`)
+//       // transform 이 함수는 반드시 무언가를 return 해야 함
+//       // 화살표 함수라서 암시적인 return 이 있다
+//       // 하지만 {`🔥 ${username} 🔥`} 중괄호를 사용해서 작성하면 아무것도 return  하지 않는 것.
+//       // 따라서 이 값이 checkUsername 에 전달되면, checkUsername 은 undefined 를 받게 됨
+//       // 왜냐면 아무것도 return 하지 않았으므로
+//       // 반드시 return 을 해줘야 함. 여기서 return 하는 것이 checkUsername 으로 전달 이 됨
+//       /*
+//       🔹 이렇게 변함
+//       {
+//         username: '🔥 dddd. 🔥',
+//         email: 'aaaa@gmail.com',
+//         password: '1Aa^',
+//         confirm_password: '1Aa^'
+//       }
+//       */
+//       .refine(checkUsername, 'No potatoes allowed'),
+//     email: z.string().email().toLowerCase(),
+//     password: z
+//       .string()
+//       .min(4)
+//       // 🔹 regular expression(정규 표현식)
+//       .regex(
+//         passwordRegex,
+//         'Passwords must contain at least one UPPERCASE, lowercase, number and special characters.'
+//       ),
+//     confirm_password: z.string().min(4),
+//   })
+//   .refine(checkPasswords, {
+//     message: 'Both passwords should be the same!',
+//     path: ['confirm_password'],
+//   });
+
+// export async function createAccount(prevState: any, formData: FormData) {
+//   const data = {
+//     username: formData.get('username'),
+//     email: formData.get('email'),
+//     password: formData.get('password'),
+//     confirm_password: formData.get('confirm_password'),
+//   };
+
+//   const result = formSchema.safeParse(data);
+//   if (!result.success) {
+//     console.log(result.error.flatten());
+
+//     return result.error.flatten();
+//   } else {
+//     console.log(result.data);
+//   }
+// }
+
+// // 🔹 변환된 후의 데이터 보기
+// // 이걸 보려면
+// // const result = formSchema.safeParse(data);
+// // 여기는 데이터를 파싱하고 그 결과를 얻는데, 결과가 성공이 아니면 유저에게 에러를 리턴함
+// // 하지만 validation 이 성공하면, 멋진 result.data 를 얻게 된다
+// // result.data 안에는 검증된 데이터도 들어있고, 변환 된 데이터도 들어있다.
+// // 이 data object 는 절대로 다시 건드리지 않음
+// // 이건 검증하기 위해 생성한 object 일 뿐이고, 다시 건드리지 않음
+// // 이 data 는 아직 검증되지도 않았고, 방금 추가한 transformer 에 의해 변환되지도 않았기 때문이다
+// // validation 을 통과하면 콘솔에서 변환된 데이터를 볼 수 있다
+
+// // 이름에 공백이 사라짐, 이메일에 대문자로 소문자로 변경 됨!
+// // {
+// //   username: 'joy',
+// //   email: 'alicejhee@naver.com',
+// //   password: '1234aA#',
+// //   confirm_password: '1234aA#'
+// // }
+
 //////////////////////////////////////////////////
 // ✅ 2024 UPDATE Validation
-// ✅ 6-3. Transformation
-// 🔶 zod를 사용해서 데이터를 변환(transform) 하는 방법
-// zod는 데이터를 검증하는 것 뿐만 아니라 변환하는 것도 가능
-// 예를 들면 유저가 대문자로 입력해도 모든 것을 소문자로 바꿔주는 것
-
-// 🔶 데이터 변환(transform) 하는 방법
-// 🔹 .toLowerCase()
-// 유저가 대문자로 입력해도 모든 것을 소문자로 바꿔주는 것
-
-// 🔹 .trim()
-// 유저가 시작과 끝에 공백을 넣었을 때 string 앞 뒤에 붙은 공백을 제거해줌.
-
-// 🔹 .transform
-// refine 과정을 커스터마이징한 것과 마찬가지로 커스텀할 수 있음
-// transform 함수는 기본적으로 refine 함수와 동일하게 작동함
-// 첫 번째 argument 로 transform 할 대상을 줌. 이 경우에는 username
-// 여기서 username 을 받고, refine 함수처럼 true or false 를 return 하는 것이 아니다
-// 어떤 항목을 변환하고, 그 변환된 값을 리턴해야 함
-// 이 함수는 반드시 무언가를 return 해야 함
-// 작동 방식은 checkUsername 과 비슷함. 함수가 실행될 것이고, 함수의 첫 번째 argument 는
-// validate / fefine / transform 하게 될 항목이다.
-// 여기서 return 하는 것이 곧 그 항목의 최종 결과가 되는 것
-
-// refine은 네가 refine하려는 대상을 넘겨줌
-// validation의 성공 여부에 따라 true or false를 return 하면 됨
-// transform 역시 네가 transform 하려는 대상을 넘겨줌
-// 여기서는 true or false가 아니라 변환된 값을 return 하면 됨
+// ✅ 6-4. Refactor
+// FormInput 리팩토링
+// Input 컴포넌트를 더 확장성 있고 커스텀 가능하게 만들기 위해서
 
 'use server';
 import { z } from 'zod';
 
-// ✨ 함수 따로 만듦
-// 🔶 regular expression(정규 표현식) validator
-// 비밀번호 정규 표현식 - 소문자, 대문자, 숫자, 특수문자
-// 비밀번호가 소문자, 대문자, 숫자, 이 특수문자의 일부를 모두 포함하고 있는지 검사하는 것
-// 정규표현식을 사용해서 유저가 강력한 비밀번호를 사용할 수 있도록 만드는 것
 const passwordRegex = new RegExp(
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*?[#?!@$%^&*-]).+$/
 );
@@ -302,31 +406,15 @@ const formSchema = z
         required_error: 'Where is my username???',
       })
       .min(3, 'Way too short!!!')
-      //.max(10, 'That is too loooooog!') 잠시 주석 처리
+      .max(10, 'That is too loooooog!')
       .toLowerCase()
       .trim()
       .transform((username) => `🔥 ${username} 🔥`)
-      // transform 이 함수는 반드시 무언가를 return 해야 함
-      // 화살표 함수라서 암시적인 return 이 있다
-      // 하지만 {`🔥 ${username} 🔥`} 중괄호를 사용해서 작성하면 아무것도 return  하지 않는 것.
-      // 따라서 이 값이 checkUsername 에 전달되면, checkUsername 은 undefined 를 받게 됨
-      // 왜냐면 아무것도 return 하지 않았으므로
-      // 반드시 return 을 해줘야 함. 여기서 return 하는 것이 checkUsername 으로 전달 이 됨
-      /*
-      🔹 이렇게 변함
-      {
-        username: '🔥 dddd. 🔥',
-        email: 'aaaa@gmail.com',
-        password: '1Aa^',
-        confirm_password: '1Aa^'
-      }
-      */
       .refine(checkUsername, 'No potatoes allowed'),
     email: z.string().email().toLowerCase(),
     password: z
       .string()
       .min(4)
-      // 🔹 regular expression(정규 표현식)
       .regex(
         passwordRegex,
         'Passwords must contain at least one UPPERCASE, lowercase, number and special characters.'
@@ -346,6 +434,7 @@ export async function createAccount(prevState: any, formData: FormData) {
     confirm_password: formData.get('confirm_password'),
   };
 
+  // safeParse
   const result = formSchema.safeParse(data);
   if (!result.success) {
     console.log(result.error.flatten());
@@ -356,21 +445,5 @@ export async function createAccount(prevState: any, formData: FormData) {
   }
 }
 
-// 🔹 변환된 후의 데이터 보기
-// 이걸 보려면
-// const result = formSchema.safeParse(data);
-// 여기는 데이터를 파싱하고 그 결과를 얻는데, 결과가 성공이 아니면 유저에게 에러를 리턴함
-// 하지만 validation 이 성공하면, 멋진 result.data 를 얻게 된다
-// result.data 안에는 검증된 데이터도 들어있고, 변환 된 데이터도 들어있다.
-// 이 data object 는 절대로 다시 건드리지 않음
-// 이건 검증하기 위해 생성한 object 일 뿐이고, 다시 건드리지 않음
-// 이 data 는 아직 검증되지도 않았고, 방금 추가한 transformer 에 의해 변환되지도 않았기 때문이다
-// validation 을 통과하면 콘솔에서 변환된 데이터를 볼 수 있다
-
-// 이름에 공백이 사라짐, 이메일에 대문자로 소문자로 변경 됨!
-// {
-//   username: 'joy',
-//   email: 'alicejhee@naver.com',
-//   password: '1234aA#',
-//   confirm_password: '1234aA#'
-// }
+// 반드시 result.data를 사용하고, data object는 다시 사용하면 안됨
+// 왜냐면 이건 invalid할 가능성이 있고, 아직 transform도 되지 않은 데이터이기 때문

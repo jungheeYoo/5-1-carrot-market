@@ -191,32 +191,103 @@
 //   );
 // }
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 UPDATE Validation
+// // ✅ 6-1. Validation Errors
+// // 모든 값 검사하기
+// // 데이터 검증 에러를 다루는 방법
+
+// 'use client';
+
+// import FormButton from '@/components/form-btn';
+// import FormInput from '@/components/form-input';
+// import SocialLogin from '@/components/social-login';
+// import { useFormState } from 'react-dom';
+// import { createAccount } from './actions';
+
+// // ✨ 타입스크립트는 매우 똑똑해서
+// // page 로 와서 state 에 마우스를 올려보면
+// // const state: typeToFlattenedError<{
+// //   username: string;
+// //   email: string;
+// //   password: string;
+// //   confirm_password: string;
+// // }, string> | null | undefined
+// // 이렇게 CreateAccount action 의 state 를 안다는 것을 볼 수 있고
+// // 기본적으로 CreateAccount action 의 return 값이
+// // zod 의 FlattenedError 타입이라는 것을 볼 수 있다
+// // 이제 매우 쉽게 각 input 에 error 를 줄 수 있다
+
+// export default function CreateAccount() {
+//   const [state, dispatch] = useFormState(createAccount, null);
+//   return (
+//     <div className="flex flex-col gap-10 py-8 px-6">
+//       <div className="flex flex-col gap-2 *:font-medium">
+//         <h1 className="text-2xl">안녕하세요!</h1>
+//         <h2 className="text-xl">Fill in the form below to join!</h2>
+//       </div>
+//       <form action={dispatch} className="flex flex-col gap-3">
+//         <FormInput
+//           name="username"
+//           type="text"
+//           placeholder="Username"
+//           required
+//           // ✨ 물음표를 넣는 이유는, 값이 string이거나 undefined일 수 있기 때문에
+//           errors={state?.fieldErrors.username}
+//         />
+//         <FormInput
+//           name="email"
+//           type="email"
+//           placeholder="Email"
+//           required
+//           errors={state?.fieldErrors.email}
+//         />
+//         <FormInput
+//           name="password"
+//           type="password"
+//           placeholder="Password"
+//           required
+//           errors={state?.fieldErrors.password}
+//         />
+//         <FormInput
+//           name="confirm_password"
+//           type="password"
+//           placeholder="Confirm Password"
+//           required
+//           errors={state?.fieldErrors.confirm_password}
+//         />
+//         <FormButton text="Create account" />
+//       </form>
+//       <SocialLogin />
+//     </div>
+//   );
+// }
+
+// // 🔥 정리
+// // Zod 를 사용해서 에러를 catch 하고 있다
+// // 먼저 모든 값을 검사하고, 그 에러를 사용자에게 return 한다
+// // 실제로 검증하지 않고 zod 와 NesxtJS 가 모든 것을 해줌
+// // 어떤 유효성 검사 로직도 작성하지 않고
+// // FormInput 을 errors prop 을 받게 만들었고
+// // errors prop 은 string array 이거나 아무 것도 없어야 함
+// // 이제 Create accout 를 누르면 UI 에 에러 표시가 됨
+
 //////////////////////////////////////////////////
 // ✅ 2024 UPDATE Validation
-// ✅ 6-1. Validation Errors
-// 모든 값 검사하기
-// 데이터 검증 에러를 다루는 방법
+// ✅ 6-4. Refactor
+// FormInput 리팩토링
+// Input 컴포넌트를 더 확장성 있고 커스텀 가능하게 만들기 위해서
+
+// 이제 브라우저에서 제공하는 validation 을 input 에 사용할 수 있다
+// FormInput 의 이름을 Input 으로 변경
 
 'use client';
 
-import FormButton from '@/components/form-btn';
-import FormInput from '@/components/form-input';
 import SocialLogin from '@/components/social-login';
 import { useFormState } from 'react-dom';
 import { createAccount } from './actions';
-
-// ✨ 타입스크립트는 매우 똑똑해서
-// page 로 와서 state 에 마우스를 올려보면
-// const state: typeToFlattenedError<{
-//   username: string;
-//   email: string;
-//   password: string;
-//   confirm_password: string;
-// }, string> | null | undefined
-// 이렇게 CreateAccount action 의 state 를 안다는 것을 볼 수 있고
-// 기본적으로 CreateAccount action 의 return 값이
-// zod 의 FlattenedError 타입이라는 것을 볼 수 있다
-// 이제 매우 쉽게 각 input 에 error 를 줄 수 있다
+import Input from '@/components/input';
+import Button from '@/components/button';
 
 export default function CreateAccount() {
   const [state, dispatch] = useFormState(createAccount, null);
@@ -227,47 +298,41 @@ export default function CreateAccount() {
         <h2 className="text-xl">Fill in the form below to join!</h2>
       </div>
       <form action={dispatch} className="flex flex-col gap-3">
-        <FormInput
+        <Input
           name="username"
           type="text"
           placeholder="Username"
           required
-          // ✨ 물음표를 넣는 이유는, 값이 string이거나 undefined일 수 있기 때문에
           errors={state?.fieldErrors.username}
+          minLength={3}
+          maxLength={10}
         />
-        <FormInput
+        <Input
           name="email"
           type="email"
           placeholder="Email"
           required
           errors={state?.fieldErrors.email}
         />
-        <FormInput
+        <Input
           name="password"
           type="password"
           placeholder="Password"
+          minLength={4}
           required
           errors={state?.fieldErrors.password}
         />
-        <FormInput
+        <Input
           name="confirm_password"
           type="password"
           placeholder="Confirm Password"
           required
+          minLength={4}
           errors={state?.fieldErrors.confirm_password}
         />
-        <FormButton text="Create account" />
+        <Button text="Create account" />
       </form>
       <SocialLogin />
     </div>
   );
 }
-
-// 🔥 정리
-// Zod 를 사용해서 에러를 catch 하고 있다
-// 먼저 모든 값을 검사하고, 그 에러를 사용자에게 return 한다
-// 실제로 검증하지 않고 zod 와 NesxtJS 가 모든 것을 해줌
-// 어떤 유효성 검사 로직도 작성하지 않고
-// FormInput 을 errors prop 을 받게 만들었고
-// errors prop 은 string array 이거나 아무 것도 없어야 함
-// 이제 Create accout 를 누르면 UI 에 에러 표시가 됨

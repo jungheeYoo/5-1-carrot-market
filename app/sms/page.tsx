@@ -4,8 +4,8 @@
 // 소셜 로그인 버튼 분리
 // 분리 후 계정 생성하는 화면과 로그인 화면에서 모두 사용
 
-import FormButton from '@/components/form-btn';
-import FormInput from '@/components/form-input';
+import FormButton from '@/components/button';
+import FormInput from '@/components/input';
 
 export default function SMSLogin() {
   return (
