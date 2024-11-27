@@ -22,16 +22,54 @@
 //   };
 // }
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 UPDATE Validation
+// // ✅ 6-0. Introduction to Zod
+
+// // 🔶 zod 유효성 검사 라이브러리 사용
+
+// 'use server';
+
+// export async function handleForm(prevState: any, formData: FormData) {
+//   return {
+//     errors: ['wrong password', 'password too short'],
+//   };
+// }
+
 //////////////////////////////////////////////////
 // ✅ 2024 UPDATE Validation
-// ✅ 6-0. Introduction to Zod
-
-// 🔶 zod 유효성 검사 라이브러리 사용
+// ✅ 6-6. Log In Validation
+// 🔶 로그인 검증
 
 'use server';
 
-export async function handleForm(prevState: any, formData: FormData) {
-  return {
-    errors: ['wrong password', 'password too short'],
+import { z } from 'zod';
+import {
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_REGEX,
+  PASSWORD_REGEX_ERROR,
+} from '../lib/constants';
+
+const formSchema = z.object({
+  email: z.string().email().toLowerCase(),
+  password: z
+    .string({
+      required_error: 'Password is required',
+    })
+    .min(PASSWORD_MIN_LENGTH)
+    .regex(PASSWORD_REGEX, PASSWORD_REGEX_ERROR),
+});
+
+export async function login(prevState: any, formData: FormData) {
+  const data = {
+    email: formData.get('email'),
+    password: formData.get('password'),
   };
+  const result = formSchema.safeParse(data);
+  if (!result.success) {
+    console.log(result.error.flatten());
+    return result.error.flatten();
+  } else {
+    console.log(result.data);
+  }
 }

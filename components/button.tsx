@@ -75,10 +75,8 @@ interface ButtonProps {
 }
 
 export default function Button({ text }: ButtonProps) {
-  // useFormStatus
   const { pending } = useFormStatus();
   return (
-    // 이 버튼은 form이 pending 상태라면 비활성화 됨
     <button
       disabled={pending}
       className="primary-btn h-10 disabled:bg-neutral-400  disabled:text-neutral-300 disabled:cursor-not-allowed"
