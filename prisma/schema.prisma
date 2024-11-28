@@ -17,73 +17,145 @@
 //   url      = env("DATABASE_URL")
 // }
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 Prisma
+// // ✅ 7-1. Schemas 
+
+// // 🔶 Prisma에게 우리 DB에 있는 사용자가 어떤 형태인지 설명
+
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// // sqlite을 이용해서 작업하고, Prisma에게 우리 DB 가 어디 있는지 알려주고
+// datasource db {
+//   provider = "sqlite"
+//   url      = env("DATABASE_URL")
+// }
+
+// // 데이터 관점에서, 우리의 사용자가 어떻게 생겼는지 알려줌
+// // 🔶 테이블 User - 테이블을 모델이라고도 할 수 있는데 카테고리처럼 네 DB 안에 있는 객체 같은 것이다
+// // linter : 에러를 발생 시킴. DB 에 있는 모델은 최소한, 한 개의 고유한 기준을 가져야 한다
+// // 기본적으로 고유한 식별자가 필요함. 어떻게 한 사용자를 다른 사용자와 구별할 수 있나?
+
+// // 🔹 id         Int      @id @default(autoincrement()) 
+// // DB에 있는 모델은 최소한, 한 개의 고유한 기준을 가져야 함
+// // 기본적으로 고유한 식별자가 필요함
+// // 사용자가 id를 갖고
+// // 그 id는 숫자가 될 것이고, int이라고 함
+// // 그리고 이것이 id라고 알려주는 속성 추가
+// // autoincrement() 기본 값 추가 
+// // 첫 번째 사용자를 생성할 때, 그 첫 번째 사용자의 id는 자동으로 1이 될 것이다
+
+// // 🔹 username   String   @unique
+// // 사용자 이름은 string이 될것이고, 고유한 값이 되어야 함
+// // 동일한 이름의 두 사용자를 가질 수 없다
+
+// // 🔹 email      String?  @unique
+// // 이메일, String 하지만 사용자가 핸드폰 번호로 로그인 하는 경우도 있으니 옵셔널인 ? 물음표 추가
+// // 이메일은 필수가 아니다. 이메일도 고유값이 되어야 함
+
+// // 🔹 password   String?
+// // 사용자가 이메일을 통해 가입한다면 비밀번호 입력. 비밀번호도 필수가 아님 (sms, 깃허브 등 비밀번호 필요 없음)
+
+// // 🔹 phone      String?  @unique
+// // phone은 String 사용자가 +82010... 이런식으로 전화번호를 입력하길 원하기 때문
+// // 필수 값 아님 (이메일, 비밀번호로 로그인 한다면).
+// // 만약 전화번호를 입력한다면 번호는 고유값이어야 함
+
+// // 🔹 github_id  String?  @unique
+// // 깃허브 로그인, string, 아이디는 고유해야 함
+
+// // 🔹 avatar     String? // @default("http://dkdkdkdkdk.com/dkd.jpg") 기본 값 가능
+// // 이미지 업로드 할거라 아바타 있어야 함. 만약 깃허브로 가입했다면 계정에서 아바타를 가져올 수 있음. 그래서 필수는 아님.
+
+// // 🔹 created_at DateTime @default(now())
+// // 사용자가 언제 생성되었는지 알고 싶음. now() 이 함수는 사용자가 생성될 때의 현재 시간을 가져옴
+
+// // 🔹 updated_at DateTime @updatedAt
+// // 사용자가 언제 업데이트 되었는지 알고 싶다
+// // @updatedAt 사용자가 수정될 때마다 Prisma는 사용자의 레코드가 수정된 시간을 updated at 속성에 넣을 것임
+
+// model User {
+//   id         Int      @id @default(autoincrement())
+//   username   String   @unique
+//   email      String?  @unique
+//   password   String?
+//   phone      String?  @unique
+//   github_id  String?  @unique
+//   avatar     String? // @default("http://dkdkdkdkdk.com/dkd.jpg") 기본 값 가능
+//   created_at DateTime @default(now())
+//   updated_at DateTime @updatedAt
+// }
+
 //////////////////////////////////////////////////
 // ✅ 2024 Prisma
-// ✅ 7-1. Schemas 
-
-// 🔶 Prisma에게 우리 DB에 있는 사용자가 어떤 형태인지 설명
+// ✅ 7-4. Relationships
+// 🔶 SMSToken 모델 만들기
+// 이 모델은 User 모델과 연결 됨. 그리고 SMS 인증을 위해서 사용할 것임
 
 generator client {
   provider = "prisma-client-js"
 }
 
-// sqlite을 이용해서 작업하고, Prisma에게 우리 DB 가 어디 있는지 알려주고
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
-// 데이터 관점에서, 우리의 사용자가 어떻게 생겼는지 알려줌
-// 🔶 테이블 User - 테이블을 모델이라고도 할 수 있는데 카테고리처럼 네 DB 안에 있는 객체 같은 것이다
-// linter : 에러를 발생 시킴. DB 에 있는 모델은 최소한, 한 개의 고유한 기준을 가져야 한다
-// 기본적으로 고유한 식별자가 필요함. 어떻게 한 사용자를 다른 사용자와 구별할 수 있나?
-
-// 🔹 id         Int      @id @default(autoincrement()) 
-// DB에 있는 모델은 최소한, 한 개의 고유한 기준을 가져야 함
-// 기본적으로 고유한 식별자가 필요함
-// 사용자가 id를 갖고
-// 그 id는 숫자가 될 것이고, int이라고 함
-// 그리고 이것이 id라고 알려주는 속성 추가
-// autoincrement() 기본 값 추가 
-// 첫 번째 사용자를 생성할 때, 그 첫 번째 사용자의 id는 자동으로 1이 될 것이다
-
-// 🔹 username   String   @unique
-// 사용자 이름은 string이 될것이고, 고유한 값이 되어야 함
-// 동일한 이름의 두 사용자를 가질 수 없다
-
-// 🔹 email      String?  @unique
-// 이메일, String 하지만 사용자가 핸드폰 번호로 로그인 하는 경우도 있으니 옵셔널인 ? 물음표 추가
-// 이메일은 필수가 아니다. 이메일도 고유값이 되어야 함
-
-// 🔹 password   String?
-// 사용자가 이메일을 통해 가입한다면 비밀번호 입력. 비밀번호도 필수가 아님 (sms, 깃허브 등 비밀번호 필요 없음)
-
-// 🔹 phone      String?  @unique
-// phone은 String 사용자가 +82010... 이런식으로 전화번호를 입력하길 원하기 때문
-// 필수 값 아님 (이메일, 비밀번호로 로그인 한다면).
-// 만약 전화번호를 입력한다면 번호는 고유값이어야 함
-
-// 🔹 github_id  String?  @unique
-// 깃허브 로그인, string, 아이디는 고유해야 함
-
-// 🔹 avatar     String? // @default("http://dkdkdkdkdk.com/dkd.jpg") 기본 값 가능
-// 이미지 업로드 할거라 아바타 있어야 함. 만약 깃허브로 가입했다면 계정에서 아바타를 가져올 수 있음. 그래서 필수는 아님.
-
-// 🔹 created_at DateTime @default(now())
-// 사용자가 언제 생성되었는지 알고 싶음. now() 이 함수는 사용자가 생성될 때의 현재 시간을 가져옴
-
-// 🔹 updated_at DateTime @updatedAt
-// 사용자가 언제 업데이트 되었는지 알고 싶다
-// @updatedAt 사용자가 수정될 때마다 Prisma는 사용자의 레코드가 수정된 시간을 updated at 속성에 넣을 것임
-
 model User {
-  id         Int      @id @default(autoincrement())
-  username   String   @unique
-  email      String?  @unique
+  id         Int        @id @default(autoincrement())
+  username   String     @unique
+  email      String?    @unique
   password   String?
-  phone      String?  @unique
-  github_id  String?  @unique
+  phone      String?    @unique
+  github_id  String?    @unique
   avatar     String? // @default("http://dkdkdkdkdk.com/dkd.jpg") 기본 값 가능
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+  SMSToken   SMSToken[]
+}
+
+// 🔹 SMSToken
+// 📍 id, created at, updated at 를 복사
+// 이것들은 사용하지 않더라도 갖고 있는 것이 좋다
+
+// 🔶 모델 간의 관계를 생성하는 방법
+// SMSToken이 user도 갖고 있다고 하면 됨
+// user 의 타입은 User 모델이다
+// 이렇게 적고 저장하면 이렇게 파일이 생성 된다
+// user       User     @relation(fields: [userId], references: [id])
+// userId     Int
+// 이건 무슨 뜻이냐면
+// 이건 Prisma 가 user 를 여기 보이는 user       User 방식이 아니라
+// 실제로 DB 에는 userId     Int 이 값이 저장된다는 의미이다
+// userId 만이 정수형으로 저장될 것이다 
+// 하지만 실제로 DB 에서는 SMSToken 을 생성하지 않을 것이다
+// 그리고 User 안에서 username 이나 email 을 가진 사용자를 가지진 않을 것이다
+// 이런식으로 데이터를 저장하진 않음
+// 대신 DB 레벨에서 실제로 저장되는 값은 userId     Int 여기 있는 값이 저장될 것이다
+// 이 SMSToken 과 연결된 userId 만 저장될 것임
+// user       User     @relation(fields: [userId], references: [id])
+// 이것은 Prisma 와 DB 에게 이 userId 를 어디서 찾아야 할 지, 또는 이 userId 가 무엇인지 알려주기 위해서이다
+// 그래서 이것은 @relation 관계라고 알려주는 것이다
+// 그리고 SMSToken 의 userId 라는 필드가 userId 이 필드를 말하는 것이다
+// User 모델의 id 라는 값을 참조한다는 것
+
+// id         Int      @id @default(autoincrement())
+// created_at DateTime @default(now())
+// updated_at DateTime @updatedAt
+// user가 없는 SMSToken은 있을 수 없다
+// user 없이 SMSTocken을 만들 수는 없다
+
+model SMSToken {
+  id         Int      @id @default(autoincrement())
+  token      String   @unique
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
 }
+
+// ✨🙌 schema.prisma 파일을 수정할 때마다 DB에게 알려줘야 한다
+// 그리고 Prisma Client 를 다 생성해야 한다
+// 그럼 이게 DB 의 최신 버전으로 업데이트 될 것임
