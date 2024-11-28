@@ -48,7 +48,7 @@ import {
   PASSWORD_MIN_LENGTH,
   PASSWORD_REGEX,
   PASSWORD_REGEX_ERROR,
-} from '../lib/constants';
+} from '../../lib/constants';
 
 const formSchema = z.object({
   email: z.string().email().toLowerCase(),

@@ -456,7 +456,7 @@ import {
   PASSWORD_MIN_LENGTH,
   PASSWORD_REGEX,
   PASSWORD_REGEX_ERROR,
-} from '../lib/constants';
+} from '../../lib/constants';
 
 // ✨ lib/constant(상수) 파일로 분리 - 재사용 위해
 // const passwordRegex = new RegExp(
