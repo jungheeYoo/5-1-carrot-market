@@ -4,15 +4,86 @@
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 Prisma
+// // ✅ 7-0. Setup 
+
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// datasource db {
+//   provider = "sqlite"
+//   url      = env("DATABASE_URL")
+// }
+
 //////////////////////////////////////////////////
 // ✅ 2024 Prisma
-// ✅ 7-0. Setup 
+// ✅ 7-1. Schemas 
+
+// 🔶 Prisma에게 우리 DB에 있는 사용자가 어떤 형태인지 설명
 
 generator client {
   provider = "prisma-client-js"
 }
 
+// sqlite을 이용해서 작업하고, Prisma에게 우리 DB 가 어디 있는지 알려주고
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
+}
+
+// 데이터 관점에서, 우리의 사용자가 어떻게 생겼는지 알려줌
+// 🔶 테이블 User - 테이블을 모델이라고도 할 수 있는데 카테고리처럼 네 DB 안에 있는 객체 같은 것이다
+// linter : 에러를 발생 시킴. DB 에 있는 모델은 최소한, 한 개의 고유한 기준을 가져야 한다
+// 기본적으로 고유한 식별자가 필요함. 어떻게 한 사용자를 다른 사용자와 구별할 수 있나?
+
+// 🔹 id         Int      @id @default(autoincrement()) 
+// DB에 있는 모델은 최소한, 한 개의 고유한 기준을 가져야 함
+// 기본적으로 고유한 식별자가 필요함
+// 사용자가 id를 갖고
+// 그 id는 숫자가 될 것이고, int이라고 함
+// 그리고 이것이 id라고 알려주는 속성 추가
+// autoincrement() 기본 값 추가 
+// 첫 번째 사용자를 생성할 때, 그 첫 번째 사용자의 id는 자동으로 1이 될 것이다
+
+// 🔹 username   String   @unique
+// 사용자 이름은 string이 될것이고, 고유한 값이 되어야 함
+// 동일한 이름의 두 사용자를 가질 수 없다
+
+// 🔹 email      String?  @unique
+// 이메일, String 하지만 사용자가 핸드폰 번호로 로그인 하는 경우도 있으니 옵셔널인 ? 물음표 추가
+// 이메일은 필수가 아니다. 이메일도 고유값이 되어야 함
+
+// 🔹 password   String?
+// 사용자가 이메일을 통해 가입한다면 비밀번호 입력. 비밀번호도 필수가 아님 (sms, 깃허브 등 비밀번호 필요 없음)
+
+// 🔹 phone      String?  @unique
+// phone은 String 사용자가 +82010... 이런식으로 전화번호를 입력하길 원하기 때문
+// 필수 값 아님 (이메일, 비밀번호로 로그인 한다면).
+// 만약 전화번호를 입력한다면 번호는 고유값이어야 함
+
+// 🔹 github_id  String?  @unique
+// 깃허브 로그인, string, 아이디는 고유해야 함
+
+// 🔹 avatar     String? // @default("http://dkdkdkdkdk.com/dkd.jpg") 기본 값 가능
+// 이미지 업로드 할거라 아바타 있어야 함. 만약 깃허브로 가입했다면 계정에서 아바타를 가져올 수 있음. 그래서 필수는 아님.
+
+// 🔹 created_at DateTime @default(now())
+// 사용자가 언제 생성되었는지 알고 싶음. now() 이 함수는 사용자가 생성될 때의 현재 시간을 가져옴
+
+// 🔹 updated_at DateTime @updatedAt
+// 사용자가 언제 업데이트 되었는지 알고 싶다
+// @updatedAt 사용자가 수정될 때마다 Prisma는 사용자의 레코드가 수정된 시간을 updated at 속성에 넣을 것임
+
+model User {
+  id         Int      @id @default(autoincrement())
+  username   String   @unique
+  email      String?  @unique
+  password   String?
+  phone      String?  @unique
+  github_id  String?  @unique
+  avatar     String? // @default("http://dkdkdkdkdk.com/dkd.jpg") 기본 값 가능
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
