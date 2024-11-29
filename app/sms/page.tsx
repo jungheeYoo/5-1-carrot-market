@@ -107,10 +107,20 @@
 //////////////////////////////////////////////////
 // ✅ 2024 UPDATE Validation
 // ✅ 6-8. SMS Validation
-// interactive form
+// interactive form 만들기 - prevState 사용
 
-// prevState
-//
+// 🔶 prevState
+// useFormState 를 사용할 때, 첫 번째 argument 는 실행하고 싶은 action 이고
+// 두 번째는 useFormState hook 의 initial state 였다
+// 두 번째는 useFormState hook의 initial state이다 => null
+// 이 initial state는, 이 함수를 최초 호출할 때의 prevState 값이 된다
+// const [state, dispatch] = useFormState(smsLogin, null);
+// 이 함수를 처음으로 호출할 때, prevState 는 null 여기에 initial state 로 넣은 값과 같다는 것이다
+// null 을 수정 - initialState
+// 이게 뭐냐면 이 페이지가 처음 render 되면 state.token 의 값은 false 가 된다
+// 이 말은, 여기서 input 을 숨기는 데 이걸 사용할 수 있다는 것이다
+// state.token이 true이면 input을 보여주고, false이면 null
+// 이러면 token 숨겨짐
 
 'use client';
 
@@ -133,6 +143,7 @@ export default function SMSLogin() {
         <h2 className="text-xl">Verify your phone number.</h2>
       </div>
       <form action={dispatch} className="flex flex-col gap-3">
+        {/* ✨ input 숨기기 */}
         {state.token ? (
           <Input
             name="token"
@@ -161,9 +172,3 @@ export default function SMSLogin() {
     </div>
   );
 }
-
-// 두 번째는 useFormState hook의 initial state이다 => null
-
-// 이 페이지가 처음 render 되면, state.token의 값은 false가 될 것임
-// 이 말은 여기서 input을 숨기는 데 사용할 수 있다는 것
-// state.token이 true이면 input을 보여주고, false이면 null

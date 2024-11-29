@@ -56,7 +56,7 @@
 //////////////////////////////////////////////////
 // ✅ 2024 UPDATE Validation
 // ✅ 6-8. SMS Validation
-// interactive form
+// interactive form 만들기 - prevState 사용
 
 'use server';
 
@@ -78,10 +78,22 @@ interface ActionState {
   token: boolean;
 }
 
+/* 
+{
+  token: false,
+  error: undefined,
+};
+*/
+// 이것과 같다
+// 그 다음부터 prevState는 내가 return하는 값과 같아진다
+
 export async function smsLogIn(prevState: ActionState, formData: FormData) {
   const phone = formData.get('phone');
   const token = formData.get('token');
-  // 잘못된 전화번호를 입력하면 validation이 실패하고 token false를 return
+  // ✨ 이 코드는
+  // 잘못된 전화번호를 입력하면 validation이 실패하고, token false를 return 한다는 의미
+  // token false를 return 한다는 것은, token: false, 이 return 값이 곧 state 가 된다는 거고
+  // token input 이 여전히 보이지 않는다는 것
   // prevState.token이 false인 경우, 즉 전화번호를 입력 받고 있다는 것
   if (!prevState.token) {
     const result = phoneSchema.safeParse(phone);
@@ -109,15 +121,3 @@ export async function smsLogIn(prevState: ActionState, formData: FormData) {
     }
   }
 }
-
-// 이 initial state는, 이 함수를 최초 호출할 때의 prevState 값이 된다
-// prevState의 초기값이 initial state 이다
-// smsLogIn을 처음 호출했을 때, prevState는
-/* 
-{
-  token: false,
-  error: undefined,
-};
-*/
-// 이것과 같다
-// 그 다음부터 prevState는 내가 return하는 값과 같아진다
