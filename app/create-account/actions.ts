@@ -444,24 +444,90 @@
 //   }
 // }
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 UPDATE Validation
+// // ✅ 6-6. Log In Validation
+// // 🔶 로그인 검증
+
+// 'use server';
+
+// import { z } from 'zod';
+// import {
+//   PASSWORD_MIN_LENGTH,
+//   PASSWORD_REGEX,
+//   PASSWORD_REGEX_ERROR,
+// } from '../lib/constants';
+
+// // ✨ lib/constant(상수) 파일로 분리 - 재사용 위해
+// // const passwordRegex = new RegExp(
+// //   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*?[#?!@$%^&*-]).+$/
+// // );
+
+// const checkUsername = (username: string) => !username.includes('potato');
+// const checkPasswords = ({
+//   password,
+//   confirm_password,
+// }: {
+//   password: string;
+//   confirm_password: string;
+// }) => password === confirm_password;
+
+// const formSchema = z
+//   .object({
+//     username: z
+//       .string({
+//         invalid_type_error: 'Username must be a stirng',
+//         required_error: 'Where is my username???',
+//       })
+//       // 🪒 username 길이 제한 필요 없으니 삭제
+//       .toLowerCase()
+//       .trim()
+//       .transform((username) => `🔥 ${username} 🔥`)
+//       .refine(checkUsername, 'No potatoes allowed'),
+//     email: z.string().email().toLowerCase(),
+//     password: z
+//       .string()
+//       .min(PASSWORD_MIN_LENGTH)
+//       .regex(PASSWORD_REGEX, PASSWORD_REGEX_ERROR),
+//     confirm_password: z.string().min(PASSWORD_MIN_LENGTH),
+//   })
+//   .refine(checkPasswords, {
+//     message: 'Both passwords should be the same!',
+//     path: ['confirm_password'],
+//   });
+
+// export async function createAccount(prevState: any, formData: FormData) {
+//   const data = {
+//     username: formData.get('username'),
+//     email: formData.get('email'),
+//     password: formData.get('password'),
+//     confirm_password: formData.get('confirm_password'),
+//   };
+
+//   const result = formSchema.safeParse(data);
+//   if (!result.success) {
+//     console.log(result.error.flatten());
+
+//     return result.error.flatten();
+//   } else {
+//     console.log(result.data);
+//   }
+// }
+
 //////////////////////////////////////////////////
-// ✅ 2024 UPDATE Validation
-// ✅ 6-6. Log In Validation
-// 🔶 로그인 검증
+// ✅ 2024 UPDATE Authentication
+// ✅ 8-1. Database Validation
+// 🔶 Validation 이 성공했다면 어떻게 되어야 할까?
+// 사용자가 제출한 email과, username이 데이터베이스에 없는지 확인
 
 'use server';
-
-import { z } from 'zod';
 import {
   PASSWORD_MIN_LENGTH,
   PASSWORD_REGEX,
   PASSWORD_REGEX_ERROR,
-} from '../../lib/constants';
-
-// ✨ lib/constant(상수) 파일로 분리 - 재사용 위해
-// const passwordRegex = new RegExp(
-//   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*?[#?!@$%^&*-]).+$/
-// );
+} from '@/lib/constants';
+import db from '@/lib/db';
+import { z } from 'zod';
 
 const checkUsername = (username: string) => !username.includes('potato');
 const checkPasswords = ({
@@ -472,6 +538,58 @@ const checkPasswords = ({
   confirm_password: string;
 }) => password === confirm_password;
 
+// ✨ user, email 유효성 검사를 하고 있으니 위치 여기로 옮겨줌
+// 이 둘을 위한 refinement 를 생성했음
+// 🔶 user - username
+const checkUniqueUsername = async (username: string) => {
+  // 🔹 check if username is taken
+  // 🔹 유저네임이 이미 존재하는지 확인
+  // 사용자가 존재하는지만 알고 싶음
+  // ⚡ select
+  // 데이터베이스에 요청할 데이터를 결정할 수 있음. id 만 달라고 함
+  const user = await db.user.findUnique({
+    where: {
+      username: username,
+    },
+    select: {
+      id: true,
+    },
+  });
+  console.log(user);
+  // 📍 user가 존재하면 에러 보여주기
+  // 📍 show an error
+  //-------------------------------------------------//
+  // ✨ refine 함수에 필요한 true or false 를 return 해야 함
+  // ✨ refine 함수에는 실행 결과로 true 나 false 가 필요함
+  // if (user) {
+  //   return false;
+  // } else {
+  //   return true;
+  // }
+  //-------------------------------------------------//
+  // 💡 더 나은 방식
+  // user가 발견되면 이건 true가 됨
+  // 찾을 수 없는 경우에는 false가 됨
+  return !Boolean(user);
+};
+
+// 🔶 user - email
+const checkUniqueEmail = async (email: string) => {
+  // 🔹 check if the email is already used
+  // 🔹 이메일을 이미 누가 사용하고 있는지 확인
+  const user = await db.user.findUnique({
+    where: {
+      email: email,
+    },
+    select: {
+      id: true,
+    },
+  });
+  // 📍 userEmail이 존재하면 에러 보여주기
+  // 📍 show an error to the userEmail
+  return Boolean(user) === false;
+};
+
 const formSchema = z
   .object({
     username: z
@@ -479,16 +597,21 @@ const formSchema = z
         invalid_type_error: 'Username must be a stirng',
         required_error: 'Where is my username???',
       })
-      // 🪒 username 길이 제한 필요 없으니 삭제
       .toLowerCase()
       .trim()
-      .transform((username) => `🔥 ${username} 🔥`)
-      .refine(checkUsername, 'No potatoes allowed'),
-    email: z.string().email().toLowerCase(),
-    password: z
+      // .transform((username) => `🔥 ${username} 🔥`)
+      .refine(checkUsername, 'No potatoes allowed')
+      .refine(checkUniqueUsername, 'This username is already taken'),
+    email: z
       .string()
-      .min(PASSWORD_MIN_LENGTH)
-      .regex(PASSWORD_REGEX, PASSWORD_REGEX_ERROR),
+      .email()
+      .toLowerCase()
+      .refine(
+        checkUniqueEmail,
+        'There is an account already registered with that email'
+      ),
+    password: z.string().min(PASSWORD_MIN_LENGTH),
+    // .regex(PASSWORD_REGEX, PASSWORD_REGEX_ERROR),
     confirm_password: z.string().min(PASSWORD_MIN_LENGTH),
   })
   .refine(checkPasswords, {
@@ -504,12 +627,28 @@ export async function createAccount(prevState: any, formData: FormData) {
     confirm_password: formData.get('confirm_password'),
   };
 
-  const result = formSchema.safeParse(data);
+  // ✨ checkUniqueUsername, checkUniqueEmail 모두 async 와 await 을 갖고 있다
+  // ⚡ safeParseAsync
+  // 그래서 Zod 도 await 을 하도록 해야 하는데 (email 로 checkUniqueEmail 을 실행할 때..) 그때 Zod 가 await 을 추가했으면 좋겠다
+  // 그럼 safeParse method 를 바꿔야 함
+  // safeParse 를 하고 싶지만 async 하고 싶다고 적어주는 것임
+  // 이 말은 Zod 가 await 을 추가해준다는 것
+  // 그리고 safeParseAsync 로 바꾼다는 것은 await 해줘야 한다는 뜻
+  // 데이터베이스 작업을 하고 있기 때문에 함수들에 await 을 넣어줘야 함
+  // data가 정제되고 변환을 거친 결과
+  const result = await formSchema.safeParseAsync(data);
   if (!result.success) {
     console.log(result.error.flatten());
 
     return result.error.flatten();
   } else {
-    console.log(result.data);
+    // 🔹 hash password
+    // 비밀번호를 해싱(hashing) 해야 함
+    // 🔹 save the user to db
+    // 사용자를 데이터베이스에 저장
+    // 🔹 log the user in
+    // 사용자가 데이터베이스에 저장되면 사용자를 로그인 시켜줌
+    // 🔹 redirect '/home'
+    // 사용자가 로그인하면 사용자를 /home으로 redirect 시킴
   }
 }
