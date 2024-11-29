@@ -653,9 +653,164 @@
 //   }
 // }
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 UPDATE Authentication
+// // ✅ 8-2. Password Hashing
+
+// 'use server';
+// import bcrypt from 'bcrypt';
+// import {
+//   PASSWORD_MIN_LENGTH,
+//   PASSWORD_REGEX,
+//   PASSWORD_REGEX_ERROR,
+// } from '@/lib/constants';
+// import db from '@/lib/db';
+// import { z } from 'zod';
+
+// const checkUsername = (username: string) => !username.includes('potato');
+// const checkPasswords = ({
+//   password,
+//   confirm_password,
+// }: {
+//   password: string;
+//   confirm_password: string;
+// }) => password === confirm_password;
+
+// const checkUniqueUsername = async (username: string) => {
+//   // 🔹 check if username is taken
+//   // 🔹 유저네임이 이미 존재하는지 확인
+//   const user = await db.user.findUnique({
+//     where: {
+//       username: username,
+//     },
+//     select: {
+//       id: true,
+//     },
+//   });
+//   return !Boolean(user);
+// };
+
+// const checkUniqueEmail = async (email: string) => {
+//   // 🔹 check if the email is already used
+//   // 🔹 이메일을 이미 누가 사용하고 있는지 확인
+//   const user = await db.user.findUnique({
+//     where: {
+//       email: email,
+//     },
+//     select: {
+//       id: true,
+//     },
+//   });
+//   return !Boolean(user);
+// };
+
+// const formSchema = z
+//   .object({
+//     username: z
+//       .string({
+//         invalid_type_error: 'Username must be a stirng',
+//         required_error: 'Where is my username???',
+//       })
+//       .toLowerCase()
+//       .trim()
+//       // .transform((username) => `🔥 ${username} 🔥`)
+//       .refine(checkUsername, 'No potatoes allowed')
+//       .refine(checkUniqueUsername, 'This username is already taken'),
+//     email: z
+//       .string()
+//       .email()
+//       .toLowerCase()
+//       .refine(
+//         checkUniqueEmail,
+//         'There is an account already registered with that email'
+//       ),
+//     password: z.string().min(PASSWORD_MIN_LENGTH),
+//     // .regex(PASSWORD_REGEX, PASSWORD_REGEX_ERROR),
+//     confirm_password: z.string().min(PASSWORD_MIN_LENGTH),
+//   })
+//   .refine(checkPasswords, {
+//     message: 'Both passwords should be the same!',
+//     path: ['confirm_password'],
+//   });
+
+// export async function createAccount(prevState: any, formData: FormData) {
+//   const data = {
+//     username: formData.get('username'),
+//     email: formData.get('email'),
+//     password: formData.get('password'),
+//     confirm_password: formData.get('confirm_password'),
+//   };
+
+//   const result = await formSchema.safeParseAsync(data);
+//   if (!result.success) {
+//     console.log(result.error.flatten());
+
+//     return result.error.flatten();
+//   } else {
+//     // 🔶 해싱 패스워드
+//     // 해싱은 기본적으로 유저가 보낸 비밀번호 변환하는 것
+//     // 해시 함수의 마법은 단방향
+//     // 이 말은, 똑같은 비밀번호로는 똑같이 생긴 무작위적인 문자열을 얻게 되지만 반대 방향으로는 그럴 수 없다
+//     // 해시 함수로 생성된 임의의 문자열을 해시 함수에 넣어도
+//     // 반대 방향으로는 알 수 없다
+//     // 이 무작위적인 결과를 내놓은 시드나 문자열이 무엇인지 알 수 없다
+
+//     // 우리가 할 것은 사용자가 준 비밀번호를 가지고 해시 함수를 실행한다
+//     // 그럼 무작위로 보이는 문자열을 받게 될 것이고
+//     // 우린 그 무작위 문자열을 데이터베이스에 저장 할 것이다
+//     // 그리고 우리가 얻게 되는 이 무작위 문자열로는 이 문자열이 이 비밀번호에서 비롯되었는지 알 방법이 없다
+//     // 그리고 비밀번호 값을 그대로 데이터베이스에 저장하지 않는다!!
+//     // 데이터베이스가 해킹되어서 비밀번호를 유출한다면 ? 비밀번호 값이 뭔지 알게 하고 싶지 않을것이다. 사용자의 비밀번호를 알 수 없어야 하기 때문에 이렇게 함
+
+//     /*
+//       12345 => hashFunction(12345) => 5sdjfhskldfjsd-fg-090
+//       hashFunction(5sdjfhskldfjsd-fg-090) => 12345
+//     */
+
+//     // 🔹 hash password
+//     // 비밀번호를 해싱(hashing) 해야 함
+//     // 비밀번호는 result.data.password 에 있음
+//     // 여기에서 12는 알고리즘을 얼마나 돌릴지 결정하는 것
+//     // 왜냐면 해싱을 한 번만 하는 것이 아니라
+//     // 해싱 알고리즘을 12번 실행한다는 것. 해시의 보안을 강화한다는 의미
+//     // hash에 마우스를 올리면 Promise 타입인 것을 볼 수 있고
+//     // Promise가 return 하는 값인 string을 받고 싶다면 await을 붙여줘야 함
+//     // 데이터베이스 쿼리를 실행했을 때 await 한 것 처럼 이렇게 await 해야 하는 이유는
+//     // 이 과정이 시간이 좀 걸리기 때문이다
+//     // 데이터베이스에서 무언가를 찾거나, 문자열을 해싱하는 과정은 시간이 걸림
+//     // 그래서 await 하는 것이다
+
+//     const hashedPassword = await bcrypt.hash(result.data.password, 12);
+//     console.log(hashedPassword);
+//     // 해시 번호 나옴
+//     // $2b$12$fTt15b7Ztl8/gkO7bLZqH.D60ifBoNsmOc3Gq5hGKDqCHoCiXLbDO
+
+//     // 🔹 save the user to db
+//     // 사용자를 데이터베이스에 저장
+//     // 해싱된 비밀번호도 있으니 사용자를 데이터베이스에 저장해야 함
+//     const user = await db.user.create({
+//       data: {
+//         username: result.data.username,
+//         email: result.data.email,
+//         password: hashedPassword,
+//       },
+//       select: {
+//         id: true,
+//       },
+//     });
+//     console.log(user);
+
+//     // 🔹 log the user in
+//     // 사용자가 데이터베이스에 저장되면 사용자를 로그인 시켜줌
+//     // 🔹 redirect '/home'
+//     // 사용자가 로그인하면 사용자를 /home으로 redirect 시킴
+//   }
+// }
+
 //////////////////////////////////////////////////
 // ✅ 2024 UPDATE Authentication
-// ✅ 8-2. Password Hashing
+// ✅ 8-3. Iron Session
+// 🔶 사용자 로그인 시키기
 
 'use server';
 import bcrypt from 'bcrypt';
@@ -666,6 +821,10 @@ import {
 } from '@/lib/constants';
 import db from '@/lib/db';
 import { z } from 'zod';
+import { Cookie } from 'next/font/google';
+import { getIronSession } from 'iron-session';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 const checkUsername = (username: string) => !username.includes('potato');
 const checkPasswords = ({
@@ -734,6 +893,9 @@ const formSchema = z
   });
 
 export async function createAccount(prevState: any, formData: FormData) {
+  // 🔔 cookies 호출
+  console.log(cookies());
+
   const data = {
     username: formData.get('username'),
     email: formData.get('email'),
@@ -747,43 +909,8 @@ export async function createAccount(prevState: any, formData: FormData) {
 
     return result.error.flatten();
   } else {
-    // 🔶 해싱 패스워드
-    // 해싱은 기본적으로 유저가 보낸 비밀번호 변환하는 것
-    // 해시 함수의 마법은 단방향
-    // 이 말은, 똑같은 비밀번호로는 똑같이 생긴 무작위적인 문자열을 얻게 되지만 반대 방향으로는 그럴 수 없다
-    // 해시 함수로 생성된 임의의 문자열을 해시 함수에 넣어도
-    // 반대 방향으로는 알 수 없다
-    // 이 무작위적인 결과를 내놓은 시드나 문자열이 무엇인지 알 수 없다
-
-    // 우리가 할 것은 사용자가 준 비밀번호를 가지고 해시 함수를 실행한다
-    // 그럼 무작위로 보이는 문자열을 받게 될 것이고
-    // 우린 그 무작위 문자열을 데이터베이스에 저장 할 것이다
-    // 그리고 우리가 얻게 되는 이 무작위 문자열로는 이 문자열이 이 비밀번호에서 비롯되었는지 알 방법이 없다
-    // 그리고 비밀번호 값을 그대로 데이터베이스에 저장하지 않는다!!
-    // 데이터베이스가 해킹되어서 비밀번호를 유출한다면 ? 비밀번호 값이 뭔지 알게 하고 싶지 않을것이다. 사용자의 비밀번호를 알 수 없어야 하기 때문에 이렇게 함
-
-    /*
-      12345 => hashFunction(12345) => 5sdjfhskldfjsd-fg-090
-      hashFunction(5sdjfhskldfjsd-fg-090) => 12345
-    */
-
-    // 🔹 hash password
-    // 비밀번호를 해싱(hashing) 해야 함
-    // 비밀번호는 result.data.password 에 있음
-    // 여기에서 12는 알고리즘을 얼마나 돌릴지 결정하는 것
-    // 왜냐면 해싱을 한 번만 하는 것이 아니라
-    // 해싱 알고리즘을 12번 실행한다는 것. 해시의 보안을 강화한다는 의미
-    // hash에 마우스를 올리면 Promise 타입인 것을 볼 수 있고
-    // Promise가 return 하는 값인 string을 받고 싶다면 await을 붙여줘야 함
-    // 데이터베이스 쿼리를 실행했을 때 await 한 것 처럼 이렇게 await 해야 하는 이유는
-    // 이 과정이 시간이 좀 걸리기 때문이다
-    // 데이터베이스에서 무언가를 찾거나, 문자열을 해싱하는 과정은 시간이 걸림
-    // 그래서 await 하는 것이다
-
     const hashedPassword = await bcrypt.hash(result.data.password, 12);
     console.log(hashedPassword);
-    // 해시 번호 나옴
-    // $2b$12$fTt15b7Ztl8/gkO7bLZqH.D60ifBoNsmOc3Gq5hGKDqCHoCiXLbDO
 
     // 🔹 save the user to db
     // 사용자를 데이터베이스에 저장
@@ -800,9 +927,88 @@ export async function createAccount(prevState: any, formData: FormData) {
     });
     console.log(user);
 
+    // 🔶 사용자 로그인 시키기란?
+    // 이 의미는 사용자에게 쿠키를 준다는 것, 데이터가 담긴 쿠키 준다
+    // 쿠키에는 이 정보가 {id:9} 포함 된다. 이 데이터가 담긴 쿠키를 우린 사용자에게 주는 것. cookie({ id: 6 })
+    // 하지만 이 텍스트 데이터 자체를 쿠키에 넣진 않음
+    // 왜냐하면 그렇게 할 경우 어떤 사용자가 9를 변경해서 바꿔버릴 수 있다
+    // 그럼 바뀐 사용자로 로그인 될 것이고, 이것은 안전하지 않다
+    // 그래서 이것을 랜덤텍스트로 변형해야 함
+    // 이 무작위적인 것을 쿠키에 담아서 사용자에게 줄 것임
+    // 쿠키의 좋은 점은 사용자에게 쿠키를 전달하고 나면, 우리가 아무것도 하지 않아도 자동으로
+    // 다음에 사용자 브라우저가 request를 보낼 때
+    // GET이든, POST든 그다음에 우리 웹사이트에서 무슨 요청을 보내던
+    // 브라우저가 자동적으로 해당 쿠키를 서버로 보낸다
+    // 우리는 이 쿠키를 사용자에게 주고, 다음에 사용자가 무언가를 한다면
+    // 예를 들어 홈페이지로 가거나, 프로필 페이지로 가거나, 채팅 페이지나
+    // 사용자가 그곳으로 가려고 하면, 브라우저는 우리에게 우리가 사용자에게 줬던 쿠키를 보낸다
+    // cookie(sajfldsfjasldfjld) ---> {id:9}
+    // 즉, 사용자는 무슨 뜻인지 알지 못하는 이 값을 가지고 와서
+    // 우리는 이것을 id:9 이런 형태로 바꿀 수 있다
+    // 그러면 우리는 이 페이지로 이동하려는 사람은 id:9번 사용자인 것을 알 수 있다
+    // 예를 들어 사용자가 프로필을 보기 위해 /profile 페이지로 이동한다고 하면
+    // 브라우저가 우리에게 자동으로 쿠키를 줄거고(사용자가 이전에 준 쿠키), 우리는 사용자가 누군지 알기 위해 그 쿠키를 복호화할 것이고 그걸 열어서 id:9번 사용자가 /profile 로 가려고 하는 것을 알 수 있다
+    // 그럼 id:9번 사용자라는 것을 알고 id:9번 사용자의 정보를 데이터베이스에서 찾아서 보여줄것임
+    // 🙌 토큰, 쿠키, 세션 차이 유튜브 영상 보기!
+
+    // ⚡ iron session
+    // 이를 위해서 iron session 패키지를 사용!
+    // 초기 설정 해야함
+    // getIronSession 작성함
+    // getIronSession은 쿠키 접근 허용이 필요함
+    // 나중에 쿠키를 읽거나 설정할 것이기 때문에 getIronSession에 쿠키를 줌
+    // NextJS 의 최신 버전에서는 쿠키를 얻는 것이 쉬움
+    // cookies 함수만 쓰면 됨. 이렇게 하면 쿠키를 얻을 수 있음
+    // Iron Session을 얻으려면 현재 쿠키가 필요함
+    // 그리고 초기 설정을 해야하는데, 쿠키의 이름 정해줌. 원하는대로 지을 수 있음
+    // 쿠키에는 비밀번호도 필요함. 이건 쿠키를 암호화하기 위해 사용될 것임
+    // 해싱처럼 단방향으로 하는 것이 아니라
+    // 쿠키는 쿠키를 암호화해서 양방향으로 가야 한다. 글자를 가져와서 암호화를 하면 암호화된 글자를 만들어서 못생기게 만듦.
+    // 하지만 비밀번호를 사용하면 복호화 시켜서 다시 아름다운 글자로 돌아갈 수 있다
+    // 그래서 여기서는 강력한 비밀번호를 선택. 비밀번호 생성 웹사이트 감
+    // https://1password.com/password-generator
+    // 긴 비밀번호 선택
+    // 이제 이 비밀번호를 비밀로 유지하는 것이 중요하다
+    // 왜냐하면 이 비밀번호를 아는 사람은 누구나 쿠키를 해독하고 그들만의 쿠키를 만들 수 있기 때문이다
+    // 즉, 자신이 다른 유저처럼 보이도록 믿게 만들 수 있다는 것이다
+    // 그래서 비밀번호를 여기 그대로 넣진 않을 거고 깃헙에 기록이 남아있으면 안됨
+    // .env 파일에 넣음
+    // password: 'process.env.COOKIE_PASSWORD!',
+    // ! 은 타입스크립트에게 .env안에 COOKIE_PASSWORD가 무조건 존재한다는 것을 알려주기 위한 것
+    // 이 cookie에 우리가 쿠키에 넣고 싶은 정보 저장
+    // getIronSession 이건 우리에게 세션, iron session 을 줄 것이다
+    // await 도 필요
+    // 이 cookie 쿠키에 넣고 싶은 정보를 저장
+    // cookie.id = user.id; 이건 user 의 id 와 같으면 될 것이다
+
+    // iron session은 delicious-karrot이라는 쿠키를 가져오거나
+    // 쿠키를 갖고 있지 않다면 생성해줌
+    // cookie.id = user.id; 여기서 우리는 쿠키 안에 정보를 넣고
+    // user.id; => Prisma로부터 받는 데이터를 넣음. db.user.create 를 하면 id 만 select 에 넣었기 때문에 이걸 받아옴
+    // 그 데이터를 쿠키에 넣고
+    // await cookie.save(); 그다음 저장
+    // 그럼 iron session 우리가 만든 비밀번호를 써서 이 데이터를 암호화 할 것임
+    // 사용자가 쿠키의 정보를 수정할 수 없도록 하는 것
+
+    // 이제 새로운 계정을 생성하고 Application Cookies 를 확인해보면
+    // delicious-karrot 쿠키가 생성됨
+    // 암호화 된 쿠키 확인할 수 있음
+    // 이 문자열을 복호화해서 내용을 보면 실제로는 id가 7이라는 내용이 있을 것임
+    // 이건 사용자가 로그인되었다는 것을 뜻함!!
+
     // 🔹 log the user in
     // 사용자가 데이터베이스에 저장되면 사용자를 로그인 시켜줌
+    const cookie = await getIronSession(cookies(), {
+      cookieName: 'delicious-karrot',
+      password: process.env.COOKIE_PASSWORD!,
+    });
+    //@ts-ignore : 타입스크립트는 cookie.id 가 뭔지 몰라서 불평함. 일단 추가해서 불평 없애줌.
+    cookie.id = user.id;
+    await cookie.save();
     // 🔹 redirect '/home'
     // 사용자가 로그인하면 사용자를 /home으로 redirect 시킴
+    redirect('/profile');
   }
+
+  // 🍪 쿠키는 삭제. 그렇지 않으면 사용자가 로그인 된 것!
 }
