@@ -1017,10 +1017,147 @@
 //   // 🍪 쿠키는 삭제. 그렇지 않으면 사용자가 로그인 된 것!
 // }
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 UPDATE Authentication
+// // ✅ 8-5. Email Log In
+// // 🔶 이메일과 비밀번호로 로그인 하기
+
+// 'use server';
+// import bcrypt from 'bcrypt';
+// import {
+//   PASSWORD_MIN_LENGTH,
+//   PASSWORD_REGEX,
+//   PASSWORD_REGEX_ERROR,
+// } from '@/lib/constants';
+// import db from '@/lib/db';
+// import { z } from 'zod';
+// import { Cookie } from 'next/font/google';
+// import { getIronSession } from 'iron-session';
+// import { cookies } from 'next/headers';
+// import { redirect } from 'next/navigation';
+// import getSession from '@/lib/session';
+
+// const checkUsername = (username: string) => !username.includes('potato');
+// const checkPasswords = ({
+//   password,
+//   confirm_password,
+// }: {
+//   password: string;
+//   confirm_password: string;
+// }) => password === confirm_password;
+
+// const checkUniqueUsername = async (username: string) => {
+//   // 🔹 check if username is taken
+//   // 🔹 유저네임이 이미 존재하는지 확인
+//   const user = await db.user.findUnique({
+//     where: {
+//       username: username,
+//     },
+//     select: {
+//       id: true,
+//     },
+//   });
+//   return !Boolean(user);
+// };
+
+// const checkUniqueEmail = async (email: string) => {
+//   // 🔹 check if the email is already used
+//   // 🔹 이메일을 이미 누가 사용하고 있는지 확인
+//   const user = await db.user.findUnique({
+//     where: {
+//       email: email,
+//     },
+//     select: {
+//       id: true,
+//     },
+//   });
+//   return !Boolean(user);
+// };
+
+// const formSchema = z
+//   .object({
+//     username: z
+//       .string({
+//         invalid_type_error: 'Username must be a stirng',
+//         required_error: 'Where is my username???',
+//       })
+//       .toLowerCase()
+//       .trim()
+//       // .transform((username) => `🔥 ${username} 🔥`)
+//       .refine(checkUsername, 'No potatoes allowed')
+//       .refine(checkUniqueUsername, 'This username is already taken'),
+//     email: z
+//       .string()
+//       .email()
+//       .toLowerCase()
+//       .refine(
+//         checkUniqueEmail,
+//         'There is an account already registered with that email'
+//       ),
+//     password: z.string().min(PASSWORD_MIN_LENGTH),
+//     // .regex(PASSWORD_REGEX, PASSWORD_REGEX_ERROR),
+//     confirm_password: z.string().min(PASSWORD_MIN_LENGTH),
+//   })
+//   .refine(checkPasswords, {
+//     message: 'Both passwords should be the same!',
+//     path: ['confirm_password'],
+//   });
+
+// export async function createAccount(prevState: any, formData: FormData) {
+//   console.log(cookies());
+
+//   const data = {
+//     username: formData.get('username'),
+//     email: formData.get('email'),
+//     password: formData.get('password'),
+//     confirm_password: formData.get('confirm_password'),
+//   };
+
+//   const result = await formSchema.safeParseAsync(data);
+//   if (!result.success) {
+//     console.log(result.error.flatten());
+
+//     return result.error.flatten();
+//   } else {
+//     // 🔹 hash password
+//     // 비밀번호를 해싱(hashing) 해야 함
+//     const hashedPassword = await bcrypt.hash(result.data.password, 12);
+//     console.log(hashedPassword);
+//     // 해시 번호 나옴
+//     // $2b$12$fTt15b7Ztl8/gkO7bLZqH.D60ifBoNsmOc3Gq5hGKDqCHoCiXLbDO
+
+//     // 🔹 save the user to db
+//     // 사용자를 데이터베이스에 저장
+//     // 해싱된 비밀번호도 있으니 사용자를 데이터베이스에 저장해야 함
+//     const user = await db.user.create({
+//       data: {
+//         username: result.data.username,
+//         email: result.data.email,
+//         password: hashedPassword,
+//       },
+//       select: {
+//         id: true,
+//       },
+//     });
+//     console.log(user);
+
+//     // 🔹 log the user in
+//     // 사용자가 데이터베이스에 저장되면 사용자를 로그인 시켜줌
+//     // 📍 cookie 에서 session 으로 이름 변경. 이게 올바른 용어이다
+//     const session = await getSession();
+
+//     session.id = user.id;
+//     await session.save();
+//     // 🔹 redirect '/home'
+//     // 사용자가 로그인하면 사용자를 /home으로 redirect 시킴
+//     redirect('/profile');
+//   }
+// }
+
 //////////////////////////////////////////////////
 // ✅ 2024 UPDATE Authentication
-// ✅ 8-5. Email Log In
-// 🔶 이메일과 비밀번호로 로그인 하기
+// ✅ 8-6. superRefine
+// 🔶 빠른 에러 처리
 
 'use server';
 import bcrypt from 'bcrypt';
@@ -1031,9 +1168,6 @@ import {
 } from '@/lib/constants';
 import db from '@/lib/db';
 import { z } from 'zod';
-import { Cookie } from 'next/font/google';
-import { getIronSession } from 'iron-session';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import getSession from '@/lib/session';
 
@@ -1046,33 +1180,20 @@ const checkPasswords = ({
   confirm_password: string;
 }) => password === confirm_password;
 
-const checkUniqueUsername = async (username: string) => {
-  // 🔹 check if username is taken
-  // 🔹 유저네임이 이미 존재하는지 확인
-  const user = await db.user.findUnique({
-    where: {
-      username: username,
-    },
-    select: {
-      id: true,
-    },
-  });
-  return !Boolean(user);
-};
-
-const checkUniqueEmail = async (email: string) => {
-  // 🔹 check if the email is already used
-  // 🔹 이메일을 이미 누가 사용하고 있는지 확인
-  const user = await db.user.findUnique({
-    where: {
-      email: email,
-    },
-    select: {
-      id: true,
-    },
-  });
-  return !Boolean(user);
-};
+// ⚡ superRefine()
+// 데이터베이스에서 여러 가지 유효성 검사를 하는 경우
+// 계정 생성을 누르면 refinement 가 모든 영역에서 발생한다
+// 만약 필드가 유효하지 않으면 다른 검사를 실행조차 하지 않게
+// 검사를 일찍 멈추는 방법
+// refine 과 거의 똑같이 작동하지만 다른 모든 검사들을 중단 시켜 더 빨리 돌아올 수 있다
+// 이걸 하려면, 사용자명을 refine 하지 않고
+// .refine(checkUniqueUsername, 'This username is already taken'),
+// .refine(
+//         checkUniqueEmail,
+//         'There is an account already registered with that email'
+//       ),
+// 그리고 데이터베이스를 한 번만 호출함
+// checkUniqueUsername, checkUniqueEmail 모두 지워줌
 
 const formSchema = z
   .object({
@@ -1084,19 +1205,67 @@ const formSchema = z
       .toLowerCase()
       .trim()
       // .transform((username) => `🔥 ${username} 🔥`)
-      .refine(checkUsername, 'No potatoes allowed')
-      .refine(checkUniqueUsername, 'This username is already taken'),
-    email: z
-      .string()
-      .email()
-      .toLowerCase()
-      .refine(
-        checkUniqueEmail,
-        'There is an account already registered with that email'
-      ),
+      .refine(checkUsername, 'No potatoes allowed'),
+
+    email: z.string().email().toLowerCase(),
+
     password: z.string().min(PASSWORD_MIN_LENGTH),
     // .regex(PASSWORD_REGEX, PASSWORD_REGEX_ERROR),
     confirm_password: z.string().min(PASSWORD_MIN_LENGTH),
+  })
+  // ⚡ superRefine()
+  // 첫 번째 인자 : 내가 검사할 값, 현재 refine 하고 있는 값
+  // 두 번째 인자 : RefinementCtx
+  // RefinementCtx 는 에러 묶음이라고 생각하면 된다
+  // Zod 는 기본적으로 나의 데이터를 검사하고 RefinementCtx 에 에러를 추가한다
+  // 우리도 여기서 거기에 접근할 수 있다
+  // 원한다면 에러를 ctx에 추가할 수 있다
+  // username 은 위 data 의 username 과 같아야 한다
+  // 중과호 열고 username 값 가져옴
+  // 우리는 이 object 를 refine 하고 있다.
+  // 이 object 에는 username, email, password, confirm_password 가 있음
+  // 그래서 이 object 를 refine 할 때는 이 object 의 데이터를 여기로 가져옴
+  .superRefine(async ({ username }, ctx) => {
+    const user = await db.user.findUnique({
+      where: {
+        username,
+      },
+      select: {
+        id: true,
+      },
+    });
+    // 그리고 여기서 user 가 찾아지면 user 가 존재한다는 것이므로 에러를 발생시켜야 함
+    // 이제 에러를 보여주기 위해서 ctx 씀. addIssue 쓰면 됨
+    // 이건 Zod 의 유효성 검사에서 에러를 추가하는 방법
+    // Issue 에서는 code 가 필요함. 많은게 있지만 일종의 커스텀 에러니까 custom 해줌
+    if (user) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'This username is already taken',
+        path: ['username'],
+        fatal: true,
+      });
+      return z.NEVER;
+    }
+  })
+  .superRefine(async ({ email }, ctx) => {
+    const user = await db.user.findUnique({
+      where: {
+        email,
+      },
+      select: {
+        id: true,
+      },
+    });
+    if (user) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'This email is already taken',
+        path: ['email'],
+        fatal: true,
+      });
+      return z.NEVER;
+    }
   })
   .refine(checkPasswords, {
     message: 'Both passwords should be the same!',
@@ -1104,7 +1273,7 @@ const formSchema = z
   });
 
 export async function createAccount(prevState: any, formData: FormData) {
-  console.log(cookies());
+  // console.log(cookies());
 
   const data = {
     username: formData.get('username'),
@@ -1115,14 +1284,33 @@ export async function createAccount(prevState: any, formData: FormData) {
 
   const result = await formSchema.safeParseAsync(data);
   if (!result.success) {
-    console.log(result.error.flatten());
-
+    // ✨ 에러가 어떻게 나타나는지?
+    // 이미 존재하는 사용자명으로 사용자 생성해봄
+    // 클릭하면 사용자명에는 에러가 안보임
+    // 터미널 콘솔에서 보면 여기에서는 볼 수 있음 'This email is already taken'
+    // 이 에러 메세지가 formErrors 로 이동했다
+    // 왜냐면 Zod 는 이 에러의 원인이 무엇인지 모르기 때문
+    // Zod 는 어떤 필드가 이 에러를 발생시켰는지 모르고 있다
+    // 그래서 이 에러를 form 의 공통 에러인 formErrors 로 이동시킴
+    // 우리는 이 에러를 여기 fieldError 에 넣고 싶다
+    // Zod 에게 에러를 발생시킨 필드는 username 이라는 것을 말해주고 싶다
+    // 그래서 여기 path 라고 하고 안에 username 넣음
+    // 이렇게 하면 에러가 username input 에 추가 됐음
+    // 터미널 콘솔을 보면 이제 에러가 formErrors 에서 username error 로 바뀌었다
+    // 하지만 아래에 아직도 검사가 실행되고 있음 다른 에러
+    // 미리 중단하기 위해서는 return z.NEVER; 라고 해주면 됨
+    // 그리고 이 Issue 가 fatal 이라고 하면 됨. fatal: true,
+    // 이렇게 fatal Issue 를 만들고 NEVER 를 return 하면
+    // 이 뒤에 다른 refine 이 있어도 그것들은 실행되지 않는다
+    // 만약 superRefine 이 NEVER 를 return 하는데 거기에 fatal Issue 가 있다면
+    // 여기 있는 다른 refine 들은 실행되지 않을 것이다
+    // console.log(result.error.flatten());
     return result.error.flatten();
   } else {
     // 🔹 hash password
     // 비밀번호를 해싱(hashing) 해야 함
     const hashedPassword = await bcrypt.hash(result.data.password, 12);
-    console.log(hashedPassword);
+    // console.log(hashedPassword);
     // 해시 번호 나옴
     // $2b$12$fTt15b7Ztl8/gkO7bLZqH.D60ifBoNsmOc3Gq5hGKDqCHoCiXLbDO
 
@@ -1139,7 +1327,7 @@ export async function createAccount(prevState: any, formData: FormData) {
         id: true,
       },
     });
-    console.log(user);
+    // console.log(user);
 
     // 🔹 log the user in
     // 사용자가 데이터베이스에 저장되면 사용자를 로그인 시켜줌
