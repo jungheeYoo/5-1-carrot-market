@@ -111,3 +111,11 @@ export default function Home() {
     </div>
   );
 }
+
+//////////////////////////////////////////////////
+// ✅ 2024 Products
+// ✅ 10-1. Tab Bar
+// 탭바 만들기 위해 폴더 생성 및 그룹핑
+
+// 이 page.tsx 도 (auth) 폴더 밑으로 보낸다
+// page.tsx 는 homepage 이기도 하지만 authentication(인증) 목적이기 때문
