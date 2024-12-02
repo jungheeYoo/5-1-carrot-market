@@ -160,12 +160,75 @@
 // // 그리고 Prisma Client 를 다 생성해야 한다
 // // 그럼 이게 DB 의 최신 버전으로 업데이트 될 것임
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 Prisma
+// // ✅ 7-5. onDelete 
+// // 🔶 onDelete 
+// // 이건 관계를 갖고 작업을 할 때 꼭 알아야 한다
+// // 속성을 통해서 서로 연관된 모델이 지워질 때의 동작을 설정할 수 있다
+
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// datasource db {
+//   provider = "sqlite"
+//   url      = env("DATABASE_URL")
+// }
+
+// model User {
+//   id         Int        @id @default(autoincrement())
+//   username   String     @unique
+//   email      String?    @unique
+//   password   String?
+//   phone      String?    @unique
+//   github_id  String?    @unique
+//   avatar     String? // @default("http://dkdkdkdkdk.com/dkd.jpg") 기본 값 가능
+//   created_at DateTime   @default(now())
+//   updated_at DateTime   @updatedAt
+//   SMSToken   SMSToken[]
+// }
+
+// // ✨ 우리가 사용자를 지우지 못했던 이유는 
+// // SMSToken 이 id 가 3인 사용자와 연결되어 있기 때문이다
+// // 만약 사용자를 삭제한다면 
+// // SMSToken 이 더이상 존재하지 않는 사용자와 연결될 것이라는 뜻이다
+// // user 를 필수 값으로 만들었기 때문에 이것은 불가능
+// // 하지만 한 가지 선택이 가능하다
+// // 만약 사용자가 삭제된다면 SMSToken 에게 어떤 일이 발생할지 선택할 수 있다
+
+// // 🔶 onDelete 속성을 통해서 
+// // 서로 연관된 모델이 지워질 때의 동작을 설정할 수 있다
+
+// // 🔹 Cascade
+// // 기본적으로, 사용자가 삭제됐을 때 사용자에게 연결된 모든 SMSToken들도 같이 지워진다는 것을 의미한다
+// // 그래서 사용자를 지우려고 한다면, 해당 사용자와 관련된 모든 SMSToken도 삭제 될것임
+// // user 는 requried 여야 한다
+
+// // 🔹 SetNull
+// // 이건 가능하다면, 사용자가 삭제됐을 때 SMSToken에서 user를 null로 설정하는 것임
+// // 이럴 땐 User? Int? 옵셔널로 만들어줘야한다 
+// // 따라서 사용자가 그들의 계정을 지우면
+// // 그 사용자의 모든 SMSToken들이 userId 를 null로 가지게 될 것임
+
+// // 🔹 Restrict
+// // 부모 레코드가 참조되고 있는 동안은 삭제되는 것을 막는다
+// // 만약 SMSToken이 사용자와 연결되어 있다면 사용자를 지울 수 없다
+// // 그 전에 모든 SMSToken을 삭제해야지만 사용자를 지울 수 있다
+
+// model SMSToken {
+//   id         Int      @id @default(autoincrement())
+//   token      String   @unique
+//   created_at DateTime @default(now())
+//   updated_at DateTime @updatedAt
+//   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   userId     Int
+// }
+
 //////////////////////////////////////////////////
-// ✅ 2024 Prisma
-// ✅ 7-5. onDelete 
-// 🔶 onDelete 
-// 이건 관계를 갖고 작업을 할 때 꼭 알아야 한다
-// 속성을 통해서 서로 연관된 모델이 지워질 때의 동작을 설정할 수 있다
+// ✅ 2024 Products
+// ✅ 10-0. Introduction 
+// Product 모델 만들기
 
 generator client {
   provider = "prisma-client-js"
@@ -187,34 +250,8 @@ model User {
   created_at DateTime   @default(now())
   updated_at DateTime   @updatedAt
   SMSToken   SMSToken[]
+  Product    Product[]
 }
-
-// ✨ 우리가 사용자를 지우지 못했던 이유는 
-// SMSToken 이 id 가 3인 사용자와 연결되어 있기 때문이다
-// 만약 사용자를 삭제한다면 
-// SMSToken 이 더이상 존재하지 않는 사용자와 연결될 것이라는 뜻이다
-// user 를 필수 값으로 만들었기 때문에 이것은 불가능
-// 하지만 한 가지 선택이 가능하다
-// 만약 사용자가 삭제된다면 SMSToken 에게 어떤 일이 발생할지 선택할 수 있다
-
-// 🔶 onDelete 속성을 통해서 
-// 서로 연관된 모델이 지워질 때의 동작을 설정할 수 있다
-
-// 🔹 Cascade
-// 기본적으로, 사용자가 삭제됐을 때 사용자에게 연결된 모든 SMSToken들도 같이 지워진다는 것을 의미한다
-// 그래서 사용자를 지우려고 한다면, 해당 사용자와 관련된 모든 SMSToken도 삭제 될것임
-// user 는 requried 여야 한다
-
-// 🔹 SetNull
-// 이건 가능하다면, 사용자가 삭제됐을 때 SMSToken에서 user를 null로 설정하는 것임
-// 이럴 땐 User? Int? 옵셔널로 만들어줘야한다 
-// 따라서 사용자가 그들의 계정을 지우면
-// 그 사용자의 모든 SMSToken들이 userId 를 null로 가지게 될 것임
-
-// 🔹 Restrict
-// 부모 레코드가 참조되고 있는 동안은 삭제되는 것을 막는다
-// 만약 SMSToken이 사용자와 연결되어 있다면 사용자를 지울 수 없다
-// 그 전에 모든 SMSToken을 삭제해야지만 사용자를 지울 수 있다
 
 model SMSToken {
   id         Int      @id @default(autoincrement())
@@ -222,5 +259,21 @@ model SMSToken {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int
+}
+
+// integer => 1,2,3,4,5
+// float => 12.5, 3.2 등
+
+model Product {
+  id          Int    @id @default(autoincrement())
+  title       String
+  price       Float
+  description String
+  photo       String
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id])
   userId     Int
 }

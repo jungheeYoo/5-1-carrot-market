@@ -67,9 +67,9 @@ export default async function Profile() {
       <form action={logOut}>
         <button>Log out</button>
       </form>
-      <form action={logOut}>
+      {/* <form action={logOut}>
         <input type="submit" value={'Log out'} />
-      </form>
+      </form> */}
     </div>
   );
 }
