@@ -76,23 +76,79 @@
 //   );
 // }
 
-//////////////////////////////////////////////////
-// ✅ 2024 Products
-// ✅ 10-7. Pagination Action
-// ✅ 10-8. Recap
+// //////////////////////////////////////////////////
+// // ✅ 2024 Products
+// // ✅ 10-7. Pagination Action
+// // ✅ 10-8. Recap
 
-// 🔶 product page 기능 변경
-// product page 기능은 오직 product의 첫 번째 page만 가져오는 것
-// 왜냐면, 만약에 여러분이 수천캐의 product 를 갖고 있는데
-// 그 page 에 database 에 무리가 되도록 모든 product 를 가져올 필요는 없음
-// 지금은 첫 번째 page 만 fetch 해오길 원함. 25개나 100개만 가져온다
-// 따라서 product page 기능은 처음에 보여줄 상품만 가져온다
-// 우리는 상품이 3개뿐이므로, page 의 size 는 1이 됨
-// page 당 하나의 product 지금 배우는중이니 이렇게 함
+// // 🔶 product page 기능 변경
+// // product page 기능은 오직 product의 첫 번째 page만 가져오는 것
+// // 왜냐면, 만약에 여러분이 수천캐의 product 를 갖고 있는데
+// // 그 page 에 database 에 무리가 되도록 모든 product 를 가져올 필요는 없음
+// // 지금은 첫 번째 page 만 fetch 해오길 원함. 25개나 100개만 가져온다
+// // 따라서 product page 기능은 처음에 보여줄 상품만 가져온다
+// // 우리는 상품이 3개뿐이므로, page 의 size 는 1이 됨
+// // page 당 하나의 product 지금 배우는중이니 이렇게 함
+
+// import ProductList from '@/components/product-list';
+// import db from '@/lib/db';
+// import { Prisma } from '@prisma/client';
+
+// async function getInitialProducts() {
+//   const products = await db.product.findMany({
+//     select: {
+//       title: true,
+//       price: true,
+//       created_at: true,
+//       photo: true,
+//       id: true,
+//     },
+//     // 🔹 1개의 상품만 가져오기
+//     take: 1,
+//     // 🔹 내림차순으로 변경
+//     orderBy: {
+//       created_at: 'desc',
+//     },
+//   });
+//   return products;
+// }
+
+// // 📍 product-list.tsx 파일에서 씀
+// // 📍 type 을 export 하고 싶다고 작성
+// // Prisma 는 이 함수의 결과가 뭔지 말해줌
+// // 나는 그게 뭔지 모르니 네기 말해줘
+// // Prisma 를 import 하고 PromiseReturnType 이라고 함
+// // 그러면 이것은 Prisma 에게 이 함수가 return 할 type 이 무엇인지 알려주는 것과 같다
+// export type InitialProducts = Prisma.PromiseReturnType<
+//   typeof getInitialProducts
+// >;
+
+// export default async function products() {
+//   const initialProducts = await getInitialProducts();
+//   return (
+//     // ✨ product-list.tsx 파일에서 랜더링 한다
+//     //     <div className="p-5 flex flex-col gap-5">
+//     //       {products.map((product) => (
+//     //         <ListProduct key={product.id} {...product} />
+//     //       ))}
+//     //     </div>
+//     <div>
+//       {/* ProductList 는 initialProducts 요구 그래서 보내줌 */}
+//       <ProductList initialProducts={initialProducts} />
+//     </div>
+//   );
+// }
+
+//////////////////////////////////////////////////
+// ✅ 2024 Product Upload
+// ✅ 11-0. Introduction
+// 🔶 제품 업로드 할 페이지로 이동하는 버튼 만들기
 
 import ProductList from '@/components/product-list';
 import db from '@/lib/db';
+import { PlusIcon } from '@heroicons/react/24/solid';
 import { Prisma } from '@prisma/client';
+import Link from 'next/link';
 
 async function getInitialProducts() {
   const products = await db.product.findMany({
@@ -103,9 +159,7 @@ async function getInitialProducts() {
       photo: true,
       id: true,
     },
-    // 🔹 1개의 상품만 가져오기
     take: 1,
-    // 🔹 내림차순으로 변경
     orderBy: {
       created_at: 'desc',
     },
@@ -113,12 +167,6 @@ async function getInitialProducts() {
   return products;
 }
 
-// 📍 product-list.tsx 파일에서 씀
-// 📍 type 을 export 하고 싶다고 작성
-// Prisma 는 이 함수의 결과가 뭔지 말해줌
-// 나는 그게 뭔지 모르니 네기 말해줘
-// Prisma 를 import 하고 PromiseReturnType 이라고 함
-// 그러면 이것은 Prisma 에게 이 함수가 return 할 type 이 무엇인지 알려주는 것과 같다
 export type InitialProducts = Prisma.PromiseReturnType<
   typeof getInitialProducts
 >;
@@ -126,15 +174,14 @@ export type InitialProducts = Prisma.PromiseReturnType<
 export default async function products() {
   const initialProducts = await getInitialProducts();
   return (
-    // ✨ product-list.tsx 파일에서 랜더링 한다
-    //     <div className="p-5 flex flex-col gap-5">
-    //       {products.map((product) => (
-    //         <ListProduct key={product.id} {...product} />
-    //       ))}
-    //     </div>
     <div>
-      {/* ProductList 는 initialProducts 요구 그래서 보내줌 */}
       <ProductList initialProducts={initialProducts} />
+      <Link
+        href="/products/add"
+        className="bg-orange-500 flex items-center justify-center rounded-full size-16 fixed bottom-24 right-8 text-white transition-colors hover:bg-orange-400"
+      >
+        <PlusIcon className="size-10" />
+      </Link>
     </div>
   );
 }
