@@ -188,7 +188,7 @@
 
 //////////////////////////////////////////////////
 // ✅ 2024 Caching
-// ✅ 11-0. Introduction
+// ✅ 13-0. Introduction
 // metadata, generateMetadata
 // caching 예제를 위해 전체 제품 가져오는걸로 변경
 
