@@ -139,10 +139,58 @@
 //   );
 // }
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 Product Upload
+// // ✅ 11-0. Introduction
+// // 🔶 제품 업로드 할 페이지로 이동하는 버튼 만들기
+
+// import ProductList from '@/components/product-list';
+// import db from '@/lib/db';
+// import { PlusIcon } from '@heroicons/react/24/solid';
+// import { Prisma } from '@prisma/client';
+// import Link from 'next/link';
+
+// async function getInitialProducts() {
+//   const products = await db.product.findMany({
+//     select: {
+//       title: true,
+//       price: true,
+//       created_at: true,
+//       photo: true,
+//       id: true,
+//     },
+//     take: 1,
+//     orderBy: {
+//       created_at: 'desc',
+//     },
+//   });
+//   return products;
+// }
+
+// export type InitialProducts = Prisma.PromiseReturnType<
+//   typeof getInitialProducts
+// >;
+
+// export default async function products() {
+//   const initialProducts = await getInitialProducts();
+//   return (
+//     <div>
+//       <ProductList initialProducts={initialProducts} />
+//       <Link
+//         href="/products/add"
+//         className="bg-orange-500 flex items-center justify-center rounded-full size-16 fixed bottom-24 right-8 text-white transition-colors hover:bg-orange-400"
+//       >
+//         <PlusIcon className="size-10" />
+//       </Link>
+//     </div>
+//   );
+// }
+
 //////////////////////////////////////////////////
-// ✅ 2024 Product Upload
+// ✅ 2024 Caching
 // ✅ 11-0. Introduction
-// 🔶 제품 업로드 할 페이지로 이동하는 버튼 만들기
+// metadata, generateMetadata
+// caching 예제를 위해 전체 제품 가져오는걸로 변경
 
 import ProductList from '@/components/product-list';
 import db from '@/lib/db';
@@ -159,7 +207,7 @@ async function getInitialProducts() {
       photo: true,
       id: true,
     },
-    take: 1,
+    // take: 1,
     orderBy: {
       created_at: 'desc',
     },
@@ -170,6 +218,10 @@ async function getInitialProducts() {
 export type InitialProducts = Prisma.PromiseReturnType<
   typeof getInitialProducts
 >;
+
+export const metadata = {
+  title: 'Home',
+};
 
 export default async function products() {
   const initialProducts = await getInitialProducts();
