@@ -82,6 +82,7 @@
 //////////////////////////////////////////////////
 // ✅ 2024 Products
 // ✅ 10-9. Infinite Scrolling
+// ✅ 12-1. Intercepting Routes : product => home 으로 바꿈 이 부분만 우선 수정
 
 // 🔶 infinite scrolling 구현
 // 작업은 두 단계
@@ -101,10 +102,10 @@
 
 'use client';
 
-import { InitialProducts } from '@/app/(tabs)/products/page';
+import { InitialProducts } from '@/app/(tabs)/home/page';
 import ListProduct from './list-product';
 import { useEffect, useRef, useState } from 'react';
-import getMoreProducts from '@/app/(tabs)/products/actions';
+import getMoreProducts from '@/app/(tabs)/home/actions';
 
 // tabs products에 가서 initialProducts에 마우스 대서 복사해서 가져오거나
 // interface ProductListProps {

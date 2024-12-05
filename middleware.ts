@@ -140,6 +140,7 @@
 //////////////////////////////////////////////////
 // ✅ 2024 UPDATE Authentication
 // ✅ 8-12. Authentication Middleware
+// ✅ 12-1. Intercepting Routes : product => home 으로 바꿈 이 부분만 우선 수정
 // 🔶 인증된 사용자만 접근할 수 있도록 하는 미들웨어 만들기
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -188,7 +189,7 @@ export async function middleware(request: NextRequest) {
     }
   } else {
     if (exists) {
-      return NextResponse.redirect(new URL('/products', request.url));
+      return NextResponse.redirect(new URL('/home', request.url));
     }
   }
 }

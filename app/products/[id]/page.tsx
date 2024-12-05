@@ -157,6 +157,8 @@
 // ✅ 2024 Products
 // ✅ 10-7. Pagination Action
 // ✅ 10-8. Recap
+// ✅ 12-1. Intercepting Routes : product => home 으로 바꿈 이 부분만 우선 수정
+// 여기선 스타일만 수정
 // ✨ 이미지 늘어나거나 찌그러지거나 변형하지 않게 스타일 바꿔줌 object-cover
 
 import db from '@/lib/db';
@@ -209,7 +211,7 @@ export default async function ProductDetail({
   }
   const isOwner = await getIsOwner(product.userId);
   return (
-    <div>
+    <div className="pb-40">
       <div className="relative aspect-square">
         {/* ✨ 이미지 늘어나거나 찌그러지거나 변형하지 않게 스타일 바꿔줌 object-cover */}
         <Image
@@ -240,7 +242,7 @@ export default async function ProductDetail({
         <h1 className="text-2xl font-semibold">{product.title}</h1>
         <p>{product.description}</p>
       </div>
-      <div className="fixed w-full bottom-0 left-0 p-5 pb-10 bg-neutral-800 flex justify-between items-center">
+      <div className="fixed w-full bottom-0  p-5 pb-10 bg-neutral-800 flex justify-between items-center max-w-screen-sm">
         <span className="font-semibold text-xl">
           {formatToWon(product.price)}원
         </span>
