@@ -167,12 +167,116 @@
 // // 1. 유저가 다른 것 말고 이미지를 업로드했는지 확인
 // // 2. 이미지 사이즈가 대략 3-4MB 이하인지 확인
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 Product Upload
+// // ✅ 11-2. Product Upload
+// // 🔶 Zod 사용 validation
+// // 유저가 보내는 정보를 데이터베이스에 실제로 저장해서
+// // uploadProduct 함수 완성하기
+
+// 'use client';
+
+// import Button from '@/components/button';
+// import Input from '@/components/input';
+// import { PhotoIcon } from '@heroicons/react/24/solid';
+// import { useState } from 'react';
+// import { uploadProduct } from './actions';
+// import { useFormState } from 'react-dom';
+
+// export default function AddProduct() {
+//   const [preview, setPreview] = useState('');
+//   const onImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+//     // console.log(event.target.files);
+//     const {
+//       target: { files },
+//     } = event;
+//     if (!files) {
+//       return;
+//     }
+//     const file = files[0];
+//     // file을 유저에게 실제로 보여주기 API
+//     // URL.createObjectURL()
+//     const url = URL.createObjectURL(file);
+//     // console.log(url); // blob:http://localhost:3000/5139fb2b-4956-4914-b2df-2ca4caec77f1
+//     setPreview(url);
+//   };
+//   const [state, action] = useFormState(uploadProduct, null);
+//   return (
+//     <div>
+//       <form action={action} className="p-5 flex flex-col gap-5">
+//         <label
+//           htmlFor="photo"
+//           className="border-2 aspect-square flex items-center justify-center flex-col text-neutral-300 border-neutral-300 rounded-md border-dashed cursor-pointer bg-center bg-cover"
+//           style={{
+//             backgroundImage: `url(${preview})`,
+//           }}
+//         >
+//           {preview === '' ? (
+//             <>
+//               <PhotoIcon className="w-20" />
+//               <div className="text-neutral-400 text-sm">
+//                 사진을 추가해주세요.
+//                 {state?.fieldErrors.photo}
+//               </div>
+//             </>
+//           ) : null}
+//         </label>
+//         <input
+//           onChange={onImageChange}
+//           type="file"
+//           id="photo"
+//           name="photo"
+//           accept="image/*"
+//           className="hidden"
+//         />
+
+//         <Input
+//           name="title"
+//           required
+//           placeholder="제목"
+//           type="text"
+//           errors={state?.fieldErrors.title}
+//         />
+//         <Input
+//           name="price"
+//           type="number"
+//           required
+//           placeholder="가격"
+//           errors={state?.fieldErrors.price}
+//         />
+//         <Input
+//           name="description"
+//           type="text"
+//           required
+//           placeholder="자세한 설명"
+//           errors={state?.fieldErrors.description}
+//         />
+//         <Button text="작성 완료" />
+//       </form>
+//     </div>
+//   );
+// }
+
 //////////////////////////////////////////////////
 // ✅ 2024 Product Upload
-// ✅ 11-2. Product Upload
-// 🔶 Zod 사용 validation
-// 유저가 보내는 정보를 데이터베이스에 실제로 저장해서
-// uploadProduct 함수 완성하기
+// ✅ 11-8. RHF Refactor
+
+// ✨ 최신 버전의 Next.js 와 server action 을 사용하고 있고,
+// 백엔드에서 zod 를 사용해 유효성 검사를 한다면?
+// react hook form 은 이제 필수는 아님
+
+// react hook form 과 server action을 함께 사용하는 방법
+// server action과 zod를 이용한 validation을 통합하는 방법
+
+// react hook form 은
+// zod 를 사용해서 form 을 validation 할 수 있게 해준다
+// 이 말은, page 파일에는 어떤 validation 코드도 직접 작성할 필요가 없다
+// react hook form 을 그냥 사용하고, react hook form 에 이 zod schema 를 사용해서
+// form 을 validation 해달라고 하면 됨
+// 이 말은, zod schema 를 프론트와 백엔드 양쪽에 공유할 수 있다는 것이다
+// npm install react-hook-form
+// npm i @hookform/resolvers :
+// 이건 zod schema 를 사용해서 form 을 validation 할 수 있게 해줌
 
 'use client';
 
@@ -180,13 +284,29 @@ import Button from '@/components/button';
 import Input from '@/components/input';
 import { PhotoIcon } from '@heroicons/react/24/solid';
 import { useState } from 'react';
-import { uploadProduct } from './actions';
-import { useFormState } from 'react-dom';
+import { getUploadUrl, uploadProduct } from './actions';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ProductType, productSchema } from './schema';
 
 export default function AddProduct() {
   const [preview, setPreview] = useState('');
-  const onImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // console.log(event.target.files);
+  const [uploadUrl, setUploadUrl] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  // 🔹 zod schema 를 사용한 validation 을 시킴
+  // resolver 를 import 함
+  // 이렇게 하면 validation 결과를 받을 수 있음
+  // 스키마 파일에서 최소값, 최대값 변경하든, 에러 메세지를 추가하든 등등
+  // 그것들이 자동으로 프론트의 form 과 백엔드에 반영된다
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<ProductType>({
+    resolver: zodResolver(productSchema),
+  });
+  const onImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const {
       target: { files },
     } = event;
@@ -194,16 +314,46 @@ export default function AddProduct() {
       return;
     }
     const file = files[0];
-    // file을 유저에게 실제로 보여주기 API
-    // URL.createObjectURL()
     const url = URL.createObjectURL(file);
-    // console.log(url); // blob:http://localhost:3000/5139fb2b-4956-4914-b2df-2ca4caec77f1
     setPreview(url);
+    setFile(file);
+    const { success, result } = await getUploadUrl();
+    if (success) {
+      const { id, uploadURL } = result;
+      setUploadUrl(uploadURL);
+      setValue(
+        'photo',
+        `https://imagedelivery.net/aSbksvJjax-AUC7qVnaC4A/${id}`
+      );
+    }
   };
-  const [state, action] = useFormState(uploadProduct, null);
+  const onSubmit = handleSubmit(async (data: ProductType) => {
+    if (!file) {
+      return;
+    }
+    const cloudflareForm = new FormData();
+    cloudflareForm.append('file', file);
+    const response = await fetch(uploadUrl, {
+      method: 'post',
+      body: cloudflareForm,
+    });
+    if (response.status !== 200) {
+      return;
+    }
+    const formData = new FormData();
+    formData.append('title', data.title);
+    formData.append('price', data.price + '');
+    formData.append('description', data.description);
+    formData.append('photo', data.photo);
+    return uploadProduct(formData);
+  });
+  const onValid = async () => {
+    await onSubmit();
+  };
+  console.log(register('title'));
   return (
     <div>
-      <form action={action} className="p-5 flex flex-col gap-5">
+      <form action={onValid} className="p-5 flex flex-col gap-5">
         <label
           htmlFor="photo"
           className="border-2 aspect-square flex items-center justify-center flex-col text-neutral-300 border-neutral-300 rounded-md border-dashed cursor-pointer bg-center bg-cover"
@@ -216,7 +366,7 @@ export default function AddProduct() {
               <PhotoIcon className="w-20" />
               <div className="text-neutral-400 text-sm">
                 사진을 추가해주세요.
-                {state?.fieldErrors.photo}
+                {errors.photo?.message}
               </div>
             </>
           ) : null}
@@ -229,27 +379,26 @@ export default function AddProduct() {
           accept="image/*"
           className="hidden"
         />
-
         <Input
-          name="title"
           required
           placeholder="제목"
           type="text"
-          errors={state?.fieldErrors.title}
+          {...register('title')}
+          errors={[errors.title?.message ?? '']}
         />
         <Input
-          name="price"
           type="number"
           required
           placeholder="가격"
-          errors={state?.fieldErrors.price}
+          {...register('price')}
+          errors={[errors.price?.message ?? '']}
         />
         <Input
-          name="description"
           type="text"
           required
           placeholder="자세한 설명"
-          errors={state?.fieldErrors.description}
+          {...register('description')}
+          errors={[errors.description?.message ?? '']}
         />
         <Button text="작성 완료" />
       </form>
