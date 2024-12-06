@@ -238,46 +238,126 @@
 //   );
 // }
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 Caching
+// // ✅ 13-1. nextCache
+
+// // ✨
+// // 데이터베이스에서 오는 응답을 cache 해주기 위해
+// // unstable_cache 함수 사용 => 현재로써는 살짝 불안정한 상태, 앞으로 변경될 수 있다
+
+// // unstable_cache 를 호출하면
+// // 함수의 첫 번째 parameter 에는 데이터베이스에 요청할 코드를 작성해줄 것이고, 그 데이터베이스에 온 데이터를 return 해 줄것임
+// // 두 번째 parameter 는 keyParts 라고 불림. 이는 cached key 를 식별하는 array 라고 써있음
+// // 이것은 cache 되고 있는 데이터의 key 를 식별하기 위해 전역적으로 고유한 값을 갖고 있어야 함
+// // 이것이 의미하는 것은 여러분의 데이터를 cache 에 넣어줄 때(cache 를 거대한 object 라고 상상하면 됨) 이름을 줘야 함. NextJS 가 필요할 때 가서 데이터를 가져올 수 있도록
+// // 따라서 cache 에는 이 함수에서 return 되는 것이 무엇이든 이 이름으로 저장 됨
+// // 예를 들어 'my-app-user' 가 될거고, cache 안에 있는 'my-app-user' 는 이 함수에서 return  하는 거랑 같은 값이 되는 것이다
+
+// import ProductList from '@/components/product-list';
+// import db from '@/lib/db';
+// import { PlusIcon } from '@heroicons/react/24/solid';
+// import { Prisma } from '@prisma/client';
+// import { unstable_cache as nextCache } from 'next/cache'; // 닉네임 지정해줌
+// import Link from 'next/link';
+
+// // 🔹 첫 번째 argument : 비용이 많이드는 계산이나 데이터베이스 query 를 가동시키는 함수
+// // 🔹 첫 번째 argument : argument 의 keyParts, getInitialProducts 함수가 return 하는 데이터를 cahe 안에서 식병할 수 있게 해줌
+// // 이런 경우에 문서를 보면 id 를 받는 함수를 만들어주고 있다. 이건 오직 그들이 user 의 id 를 보내야하기 때문에 해주는 것. 우리의 경우 그 어떤 제품의 id 도 필요하지 않음.
+// // getInitialProducts 가 id 를 필요치 않기 때문이다
+// const getCachedProducts = nextCache(getInitialProducts, ['home-products']);
+
+// // ❗ 더 이상 getInitialProducts 를 컴포넌트에서 사용하지 않음 getCachedProducts 를 사용할 것임
+// // ⚡ 그럼 무슨일이 일어나냐면
+// // getCachedProducts 는 일단 NextJS cahe 로 가서 key 에 대한 데이터를 찾음. 처음에는 찾을 수 없음.
+// // 그러면 getInitialProducts 함수를 실행
+// // 이 함수는 데이터베이스에 접근할거고, 다수의 제품들을 return 함
+// // 그런 다음에 NextJS cache 가 우리에게 getCachedProducts 있는 모든 제품을 줌
+// // 이 함수가 두 번째로 실행될 때는
+// // NextJS cache 는 cache 로 가서 home-products 를 찾아봄. 그리고 cache 된 데이터를 그곳에서 찾음
+// // 따라서 이 함수(getInitialProducts) 를 더이상 호출하지 않을거고 대신에 이미 cahe에 있는 데이터를 줌
+// // 이제 이 데이터가 실제로 cache 되고 있는지 확인하기 위해서 prisma studio 를 열어서 데이터를 하나 수정해보고 페이지를 새로고침하면 수정된 사항이 반영 안됨. 이전 버전 보임.
+// // 왜냐면 이전 버전 데이터가 cache 되어 메모리 안에 있기 때문. 데이터베이스는 사용되고 있지 않음
+
+// async function getInitialProducts() {
+//   console.log('hit!!!!');
+//   const products = await db.product.findMany({
+//     select: {
+//       title: true,
+//       price: true,
+//       created_at: true,
+//       photo: true,
+//       id: true,
+//     },
+//     orderBy: {
+//       created_at: 'desc',
+//     },
+//   });
+//   return products;
+// }
+
+// export type InitialProducts = Prisma.PromiseReturnType<
+//   typeof getInitialProducts
+// >;
+
+// export const metadata = {
+//   title: 'Home',
+// };
+
+// export default async function Products() {
+//   const initialProducts = await getCachedProducts(); // 🔹 getInitialProducts 에서 변경
+//   return (
+//     <div>
+//       <ProductList initialProducts={initialProducts} />
+//       <Link
+//         href="/products/add"
+//         className="bg-orange-500 flex items-center justify-center rounded-full size-16 fixed bottom-24 right-8 text-white transition-colors hover:bg-orange-400"
+//       >
+//         <PlusIcon className="size-10" />
+//       </Link>
+//     </div>
+//   );
+// }
+
+// // ✨ 정리
+// // 첫 번째 parameter 로 데이터베이스와 대화할 수 있는 함수를 넣어줌
+// // 두 번째 cache 이름을 적어줌
+// // 처음으로 이 nextCache 함수가 실행될 때는 cache 에 이러한 'home-products' 데이터가 전혀 없다
+// // 그러므로 이 getInitialProducts 함수가 실행될거고 NextJS 는 이 getInitialProducts 함수의 response 를 저장해줌
+// // NextJS 는 이 함수가 return 하는 것이 뭐든 저장해줌
+// // 매우 중요한 점은 함수가 반드시 무언가를 return 해줘야 함
+// // NextJS 는 이 getInitialProducts 함수가 return 하는 것을 저장하고
+// // 'home-products' 이 이름으로 cache 에 넣어줌
+// // 그래서 두 번째로 페이지를 새로고침 할 때는 NextJS 는 home-products 에 데이터가 있다는 것을 찾게 될거라서 getInitialProducts 이 함수는 더이상 사용하지 않을거고, 이 데이터베이스는 호출되지 않음
+
 //////////////////////////////////////////////////
 // ✅ 2024 Caching
-// ✅ 13-1. nextCache
+// ✅ 13-2. revalidate
+// 첫 번째 옵션
+// (갱신)- 만료 기간에 따라 데이터를 새로고침
+// nextCache 함수의 세 번째 argument 에 object 로 보내줌
+// 원하면 revalidate 과 tags 를 보내줄 수 있다
 
-// ✨
-// 데이터베이스에서 오는 응답을 cache 해주기 위해
-// unstable_cache 함수 사용 => 현재로써는 살짝 불안정한 상태, 앞으로 변경될 수 있다
-
-// unstable_cache 를 호출하면
-// 함수의 첫 번째 parameter 에는 데이터베이스에 요청할 코드를 작성해줄 것이고, 그 데이터베이스에 온 데이터를 return 해 줄것임
-// 두 번째 parameter 는 keyParts 라고 불림. 이는 cached key 를 식별하는 array 라고 써있음
-// 이것은 cache 되고 있는 데이터의 key 를 식별하기 위해 전역적으로 고유한 값을 갖고 있어야 함
-// 이것이 의미하는 것은 여러분의 데이터를 cache 에 넣어줄 때(cache 를 거대한 object 라고 상상하면 됨) 이름을 줘야 함. NextJS 가 필요할 때 가서 데이터를 가져올 수 있도록
-// 따라서 cache 에는 이 함수에서 return 되는 것이 무엇이든 이 이름으로 저장 됨
-// 예를 들어 'my-app-user' 가 될거고, cache 안에 있는 'my-app-user' 는 이 함수에서 return  하는 거랑 같은 값이 되는 것이다
+// 🔶 데이터를 어떻게 갱신하는지? 데이터를 어떻게 다시 새로 고침해주는지
+// nextCache 의 요점은 데이터가 변경되지 않았을시에는 데이터베이스에 접근하지 않음.
+// 하지만 새로운 데이터가 있다면 cache 를 새로고침 할 방법 찾아야 함
+// 따라서 user 가 최신 데이터를 볼 수 있을뿐만 아니라, 새로운 데이터가 없을 땐 user 가
+// 데이터베이스에 접근하지 않아도 되도록
+// cache 안에 있는 데이터를 새로고침 하는 방법엔 세 가지 옵션이 있다
 
 import ProductList from '@/components/product-list';
 import db from '@/lib/db';
 import { PlusIcon } from '@heroicons/react/24/solid';
 import { Prisma } from '@prisma/client';
-import { unstable_cache as nextCache } from 'next/cache'; // 닉네임 지정해줌
+import { unstable_cache as nextCache } from 'next/cache';
 import Link from 'next/link';
 
-// 🔹 첫 번째 argument : 비용이 많이드는 계산이나 데이터베이스 query 를 가동시키는 함수
-// 🔹 첫 번째 argument : argument 의 keyParts, getInitialProducts 함수가 return 하는 데이터를 cahe 안에서 식병할 수 있게 해줌
-// 이런 경우에 문서를 보면 id 를 받는 함수를 만들어주고 있다. 이건 오직 그들이 user 의 id 를 보내야하기 때문에 해주는 것. 우리의 경우 그 어떤 제품의 id 도 필요하지 않음.
-// getInitialProducts 가 id 를 필요치 않기 때문이다
-const getCachedProducts = nextCache(getInitialProducts, ['home-products']);
-
-// ❗ 더 이상 getInitialProducts 를 컴포넌트에서 사용하지 않음 getCachedProducts 를 사용할 것임
-// ⚡ 그럼 무슨일이 일어나냐면
-// getCachedProducts 는 일단 NextJS cahe 로 가서 key 에 대한 데이터를 찾음. 처음에는 찾을 수 없음.
-// 그러면 getInitialProducts 함수를 실행
-// 이 함수는 데이터베이스에 접근할거고, 다수의 제품들을 return 함
-// 그런 다음에 NextJS cache 가 우리에게 getCachedProducts 있는 모든 제품을 줌
-// 이 함수가 두 번째로 실행될 때는
-// NextJS cache 는 cache 로 가서 home-products 를 찾아봄. 그리고 cache 된 데이터를 그곳에서 찾음
-// 따라서 이 함수(getInitialProducts) 를 더이상 호출하지 않을거고 대신에 이미 cahe에 있는 데이터를 줌
-// 이제 이 데이터가 실제로 cache 되고 있는지 확인하기 위해서 prisma studio 를 열어서 데이터를 하나 수정해보고 페이지를 새로고침하면 수정된 사항이 반영 안됨. 이전 버전 보임.
-// 왜냐면 이전 버전 데이터가 cache 되어 메모리 안에 있기 때문. 데이터베이스는 사용되고 있지 않음
+// ✨ revalidate : 함수가 처음으로 호출되는 순간 작동해 user 가 페이지를 다시 요청하는데 60초가 지나지 않았다면 nextCache 는 cache 안에 있는 데이터를 return  함
+// 만약 user 가 페이지를 다시 요청하는데  60초가 지난 상태면 cache 안에 있는 데이터는 너무 오래됐다, 최신이 아니다라고 간주함
+// 그래서 NextJS 는 최신 정보를 불러오기 위해 getInitialProducts 를 다시 호출하고 60초는 다시 작동함. 60초 마다가 아님. 60초가 지난 후 새로운 요청이 있다면 그때 NextJS 가 이 함수를 다시 호출할거라는 말이다.
+const getCachedProducts = nextCache(getInitialProducts, ['home-products'], {
+  revalidate: 60,
+});
 
 async function getInitialProducts() {
   console.log('hit!!!!');
@@ -305,7 +385,7 @@ export const metadata = {
 };
 
 export default async function Products() {
-  const initialProducts = await getCachedProducts(); // 🔹 getInitialProducts 에서 변경
+  const initialProducts = await getCachedProducts();
   return (
     <div>
       <ProductList initialProducts={initialProducts} />
@@ -318,14 +398,3 @@ export default async function Products() {
     </div>
   );
 }
-
-// ✨ 정리
-// 첫 번째 parameter 로 데이터베이스와 대화할 수 있는 함수를 넣어줌
-// 두 번째 cache 이름을 적어줌
-// 처음으로 이 nextCache 함수가 실행될 때는 cache 에 이러한 'home-products' 데이터가 전혀 없다
-// 그러므로 이 getInitialProducts 함수가 실행될거고 NextJS 는 이 getInitialProducts 함수의 response 를 저장해줌
-// NextJS 는 이 함수가 return 하는 것이 뭐든 저장해줌
-// 매우 중요한 점은 함수가 반드시 무언가를 return 해줘야 함
-// NextJS 는 이 getInitialProducts 함수가 return 하는 것을 저장하고
-// 'home-products' 이 이름으로 cache 에 넣어줌
-// 그래서 두 번째로 페이지를 새로고침 할 때는 NextJS 는 home-products 에 데이터가 있다는 것을 찾게 될거라서 getInitialProducts 이 함수는 더이상 사용하지 않을거고, 이 데이터베이스는 호출되지 않음
