@@ -400,16 +400,110 @@
 //   );
 // }
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 Caching
+// // ✅ 13-3. revalidatePath
+// // 🔶 두 번째 옵션
+// // 🔶 revalidatePath (특정 경로(Path)) - 요청했을 때 데이터를 새로고침하는 방법, 요청형 새로고침
+// // 이번엔 두번째, 우리가 요청했을 때 데이터를 새로고침 하는 방법. 두 가지 방법이 있다
+// // 🔹 2-1. revalidatePath (특정 경로(Path))
+// // 첫 번째 방법 URL을 타겟팅한다
+// // =>'NextJS에게 /home 페이지에와 연결되어있는 모든 데이터를 새로고침 해라' 가장 편한 방법
+// // 대신 많은 제어권을 가질 순 없다
+
+// import ProductList from '@/components/product-list';
+// import db from '@/lib/db';
+// import { PlusIcon } from '@heroicons/react/24/solid';
+// import { Prisma } from '@prisma/client';
+// import { unstable_cache as nextCache, revalidatePath } from 'next/cache';
+// import Link from 'next/link';
+
+// const getCachedProducts = nextCache(getInitialProducts, ['home-products']);
+
+// async function getInitialProducts() {
+//   console.log('hit!!!!');
+//   const products = await db.product.findMany({
+//     select: {
+//       title: true,
+//       price: true,
+//       created_at: true,
+//       photo: true,
+//       id: true,
+//     },
+//     orderBy: {
+//       created_at: 'desc',
+//     },
+//   });
+//   return products;
+// }
+
+// export type InitialProducts = Prisma.PromiseReturnType<
+//   typeof getInitialProducts
+// >;
+
+// export const metadata = {
+//   title: 'Home',
+// };
+
+// export default async function Products() {
+//   const initialProducts = await getCachedProducts();
+//   // 🔹 revalidate 라는 server action 만들어줌
+//   // 이건 server component 안에 있기 때문에 inline server action 이여도 됨
+//   // revalidate server action 에서 할 것은 여기서 revalidatePath 함수 호출
+//   const revalidate = async () => {
+//     'use server';
+//     revalidatePath('/home');
+//   };
+//   return (
+//     <div>
+//       <ProductList initialProducts={initialProducts} />
+//       {/* revalidate 씀 */}
+//       <form action={revalidate}>
+//         <button>Revalidate</button>
+//       </form>
+//       <Link
+//         href="/products/add"
+//         className="bg-orange-500 flex items-center justify-center rounded-full size-16 fixed bottom-24 right-8 text-white transition-colors hover:bg-orange-400"
+//       >
+//         <PlusIcon className="size-10" />
+//       </Link>
+//     </div>
+//   );
+// }
+
 //////////////////////////////////////////////////
 // ✅ 2024 Caching
-// ✅ 13-3. revalidatePath
-// 🔶 두 번째 옵션
-// 🔶 revalidatePath (특정 경로(Path)) - 요청했을 때 데이터를 새로고침하는 방법, 요청형 새로고침
-// 이번엔 두번째, 우리가 요청했을 때 데이터를 새로고침 하는 방법. 두 가지 방법이 있다
-// 🔹 2-1. revalidatePath (특정 경로(Path))
-// 첫 번째 방법 URL을 타겟팅한다
-// =>'NextJS에게 /home 페이지에와 연결되어있는 모든 데이터를 새로고침 해라' 가장 편한 방법
-// 대신 많은 제어권을 가질 순 없다
+// ✅ 13-6. Production Cache
+// 🔶 Next.js가 route를 어떻게 cache하는지
+// 이 모든 스크린의 모든 route
+// satic 페이지와 dynamic 페이지가 무엇을 의미하는지? 차이가 무엇인지?
+// 모든 request 에서 database 의 응답이 필요하다고 생각함에도 불구하고
+// Next.js 가 app, (tabs) 에 있는 home 페이지를 어떤 이유로 static 으로 처리하는지
+// 여기서는 기본 설정에 대한 설명임
+
+// 시작하기에 앞서, Next.js 가 어떻게 프로젝트를 build 하는지 이해해야 함
+// 여기서 building 이란, production mode(운영 모드)로 프로젝트를 빌드하는 것을 의미
+// 프로젝트를 build 하고 최적화 하는 것은 사용자가 사용할 실제 서버에 deploy 를 준비하는 작업
+// 우리는 development mode(개발 모드) 에 익숙한데, 이것은 다르다
+
+// npm run build
+// Next.js 가 최적화된 production build 를 하고 있는걸 볼 수 있다
+// 이건 Next.js 가 server-side 렌더링을 하고 static page 를 export 한다는 의미
+// 어떤 것이 dynamic 인지 감지할거고 어디에 있는지 알려줌3
+// 두 종류의 page 가 있는데 static , dynamic
+// profile 페이지는 dynamic 페이지이다
+// 누가 보고 있느냐에 따라 내용이 달라지기 때문
+// 사용자를 얻기 위해서 getUser() function 을 호출해야 하는데 이 함수안에서는 실제로 cookie 를 통해 session 을 얻어야 하고, database 와 얘기도 해야하고 database 결과에 따라서 h1 태그는 모든 사용자들에게 다르게 보일 것임
+// 그래서 확실하게 이 페이지는 dynamic 페이지이다
+// 보는 사람에 따라 이 페이지가 바뀔 것이기 때문이다
+// 하지만 home 페이지는 static 페이지다. 하지만 실제로 database 를 사용하고 있다
+// database 에 새로운 제품이 등록될 때, 이것은 어떤식으로 업데이트가 되어야만 한다
+// 하지만 Next.js 는 static 페이지라고 한다
+// npm run start => production mode 로 서버를 구동하겠다는 뜻
+// 홈페이지는 cookie 를 사용하지 않았다는 점이다
+// 이 홈페이지의 경우 database 를 사용하고 있지만, 이 페이지는 보는 사람에 따라 내용이 바뀌지 않음
+// cookie 도 사용하지 않고 사용자가 누구인지 상관 없다. header 도 사용하지 않고 있다
+// 사용자의 위치나 header 의 버전 등 무엇이든 상관 없다
 
 import ProductList from '@/components/product-list';
 import db from '@/lib/db';
@@ -446,10 +540,9 @@ export const metadata = {
 };
 
 export default async function Products() {
-  const initialProducts = await getCachedProducts();
-  // 🔹 revalidate 라는 server action 만들어줌
-  // 이건 server component 안에 있기 때문에 inline server action 이여도 됨
-  // revalidate server action 에서 할 것은 여기서 revalidatePath 함수 호출
+  // 🔹 development mode 와 production mode 의 차이를 보기 위해
+  // getCachedProducts() 의 사용을 잠시 중단 getInitialProducts 로 바꿈
+  const initialProducts = await getInitialProducts();
   const revalidate = async () => {
     'use server';
     revalidatePath('/home');
@@ -457,7 +550,6 @@ export default async function Products() {
   return (
     <div>
       <ProductList initialProducts={initialProducts} />
-      {/* revalidate 씀 */}
       <form action={revalidate}>
         <button>Revalidate</button>
       </form>
