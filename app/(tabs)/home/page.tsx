@@ -471,39 +471,114 @@
 //   );
 // }
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 Caching
+// // ✅ 13-6. Production Cache
+// // 🔶 Next.js가 route를 어떻게 cache하는지
+// // 이 모든 스크린의 모든 route
+// // satic 페이지와 dynamic 페이지가 무엇을 의미하는지? 차이가 무엇인지?
+// // 모든 request 에서 database 의 응답이 필요하다고 생각함에도 불구하고
+// // Next.js 가 app, (tabs) 에 있는 home 페이지를 어떤 이유로 static 으로 처리하는지
+// // 여기서는 기본 설정에 대한 설명임
+
+// // 시작하기에 앞서, Next.js 가 어떻게 프로젝트를 build 하는지 이해해야 함
+// // 여기서 building 이란, production mode(운영 모드)로 프로젝트를 빌드하는 것을 의미
+// // 프로젝트를 build 하고 최적화 하는 것은 사용자가 사용할 실제 서버에 deploy 를 준비하는 작업
+// // 우리는 development mode(개발 모드) 에 익숙한데, 이것은 다르다
+
+// // npm run build
+// // Next.js 가 최적화된 production build 를 하고 있는걸 볼 수 있다
+// // 이건 Next.js 가 server-side 렌더링을 하고 static page 를 export 한다는 의미
+// // 어떤 것이 dynamic 인지 감지할거고 어디에 있는지 알려줌3
+// // 두 종류의 page 가 있는데 static , dynamic
+// // profile 페이지는 dynamic 페이지이다
+// // 누가 보고 있느냐에 따라 내용이 달라지기 때문
+// // 사용자를 얻기 위해서 getUser() function 을 호출해야 하는데 이 함수안에서는 실제로 cookie 를 통해 session 을 얻어야 하고, database 와 얘기도 해야하고 database 결과에 따라서 h1 태그는 모든 사용자들에게 다르게 보일 것임
+// // 그래서 확실하게 이 페이지는 dynamic 페이지이다
+// // 보는 사람에 따라 이 페이지가 바뀔 것이기 때문이다
+// // 하지만 home 페이지는 static 페이지다. 하지만 실제로 database 를 사용하고 있다
+// // database 에 새로운 제품이 등록될 때, 이것은 어떤식으로 업데이트가 되어야만 한다
+// // 하지만 Next.js 는 static 페이지라고 한다
+// // npm run start => production mode 로 서버를 구동하겠다는 뜻
+// // 홈페이지는 cookie 를 사용하지 않았다는 점이다
+// // 이 홈페이지의 경우 database 를 사용하고 있지만, 이 페이지는 보는 사람에 따라 내용이 바뀌지 않음
+// // cookie 도 사용하지 않고 사용자가 누구인지 상관 없다. header 도 사용하지 않고 있다
+// // 사용자의 위치나 header 의 버전 등 무엇이든 상관 없다
+
+// import ProductList from '@/components/product-list';
+// import db from '@/lib/db';
+// import { PlusIcon } from '@heroicons/react/24/solid';
+// import { Prisma } from '@prisma/client';
+// import { unstable_cache as nextCache, revalidatePath } from 'next/cache';
+// import Link from 'next/link';
+
+// const getCachedProducts = nextCache(getInitialProducts, ['home-products']);
+
+// async function getInitialProducts() {
+//   console.log('hit!!!!');
+//   const products = await db.product.findMany({
+//     select: {
+//       title: true,
+//       price: true,
+//       created_at: true,
+//       photo: true,
+//       id: true,
+//     },
+//     orderBy: {
+//       created_at: 'desc',
+//     },
+//   });
+//   return products;
+// }
+
+// export type InitialProducts = Prisma.PromiseReturnType<
+//   typeof getInitialProducts
+// >;
+
+// export const metadata = {
+//   title: 'Home',
+// };
+
+// export default async function Products() {
+//   // 🔹 development mode 와 production mode 의 차이를 보기 위해
+//   // getCachedProducts() 의 사용을 잠시 중단 getInitialProducts 로 바꿈
+//   const initialProducts = await getInitialProducts();
+//   const revalidate = async () => {
+//     'use server';
+//     revalidatePath('/home');
+//   };
+//   return (
+//     <div>
+//       <ProductList initialProducts={initialProducts} />
+//       <form action={revalidate}>
+//         <button>Revalidate</button>
+//       </form>
+//       <Link
+//         href="/products/add"
+//         className="bg-orange-500 flex items-center justify-center rounded-full size-16 fixed bottom-24 right-8 text-white transition-colors hover:bg-orange-400"
+//       >
+//         <PlusIcon className="size-10" />
+//       </Link>
+//     </div>
+//   );
+// }
+
 //////////////////////////////////////////////////
 // ✅ 2024 Caching
-// ✅ 13-6. Production Cache
-// 🔶 Next.js가 route를 어떻게 cache하는지
-// 이 모든 스크린의 모든 route
-// satic 페이지와 dynamic 페이지가 무엇을 의미하는지? 차이가 무엇인지?
-// 모든 request 에서 database 의 응답이 필요하다고 생각함에도 불구하고
-// Next.js 가 app, (tabs) 에 있는 home 페이지를 어떤 이유로 static 으로 처리하는지
-// 여기서는 기본 설정에 대한 설명임
+// ✅ 13-7. Route Segment Config
 
-// 시작하기에 앞서, Next.js 가 어떻게 프로젝트를 build 하는지 이해해야 함
-// 여기서 building 이란, production mode(운영 모드)로 프로젝트를 빌드하는 것을 의미
-// 프로젝트를 build 하고 최적화 하는 것은 사용자가 사용할 실제 서버에 deploy 를 준비하는 작업
-// 우리는 development mode(개발 모드) 에 익숙한데, 이것은 다르다
+// 🔶 Customization 옵션
+// 이러면 최신 버전의 홈페이지를 사용자에게 보여주기 위해 revalidatePath 를 하지 않아도 됨
+// Next.js 가 어떻게 모든 route 를 cache 하는지 알아봄
+// 그리고 기본적으로 이 route 가 어떻게 동작하는지도 알아봄
 
-// npm run build
-// Next.js 가 최적화된 production build 를 하고 있는걸 볼 수 있다
-// 이건 Next.js 가 server-side 렌더링을 하고 static page 를 export 한다는 의미
-// 어떤 것이 dynamic 인지 감지할거고 어디에 있는지 알려줌3
-// 두 종류의 page 가 있는데 static , dynamic
-// profile 페이지는 dynamic 페이지이다
-// 누가 보고 있느냐에 따라 내용이 달라지기 때문
-// 사용자를 얻기 위해서 getUser() function 을 호출해야 하는데 이 함수안에서는 실제로 cookie 를 통해 session 을 얻어야 하고, database 와 얘기도 해야하고 database 결과에 따라서 h1 태그는 모든 사용자들에게 다르게 보일 것임
-// 그래서 확실하게 이 페이지는 dynamic 페이지이다
-// 보는 사람에 따라 이 페이지가 바뀔 것이기 때문이다
-// 하지만 home 페이지는 static 페이지다. 하지만 실제로 database 를 사용하고 있다
-// database 에 새로운 제품이 등록될 때, 이것은 어떤식으로 업데이트가 되어야만 한다
-// 하지만 Next.js 는 static 페이지라고 한다
-// npm run start => production mode 로 서버를 구동하겠다는 뜻
-// 홈페이지는 cookie 를 사용하지 않았다는 점이다
-// 이 홈페이지의 경우 database 를 사용하고 있지만, 이 페이지는 보는 사람에 따라 내용이 바뀌지 않음
-// cookie 도 사용하지 않고 사용자가 누구인지 상관 없다. header 도 사용하지 않고 있다
-// 사용자의 위치나 header 의 버전 등 무엇이든 상관 없다
+// 복습
+// Next.js 가 해당 페이지를 누가 보느냐에 따라 내용이 바뀌지 않는다고 판단하면
+// Next.js 는 자동으로 많은 페이지를 static 으로 generate 한다
+// npm run build 해서 어떤 페이지를 누가 보느냐에 따라 내용이 바뀌는지 아닌지 알려줌
+// 이렇게 페이지를 generate 해준다
+// 프로필 페이지를 예를 들면, cookie 를 사용하기 때문에 누가 보느냐에 따라 내용이 바뀔 수 있다
+// 그리고 제품 페이지는 ID 로 어떤 데이터가 들어가느냐에 따라 바뀔 것임
 
 import ProductList from '@/components/product-list';
 import db from '@/lib/db';
@@ -539,9 +614,42 @@ export const metadata = {
   title: 'Home',
 };
 
+// 📍 dynamic 은 route segment config 옵션 중에 하나이다
+// 이것은 page, layout, route handler 의 동작을 구성할 수 있도록 해줌
+// dynamic 의 기본값은 'auto' 이다
+// 이는 페이지가 가능한 한 많은 cache 를 사용하게 될 것을 의미한다
+// 이걸 force-dynamic 으로 변경할 수 있음
+
+// 📍 force-dynamic 은 dynamic rendering 을 강제로 실행시킴
+// 이건 사용자가 페이지를 방문할 때마다 이전 버전의 HTML 을 볼 수 없다는 뜻
+// 대신에 Next.js 는 사용자가 그곳에 방문할 때마다 새로운 HTML 을 generate 할 것이다
+// 이것이 일어나려면 export const dynamic = 'force-dynamic'; 해주면 됨
+// export 하면 Next.js 는 자동적으로 이것을 찾음
+// 만약 이걸 찾지 못하면 'auto' 가 기본값이고 만약 찾는다면 overridden 되어서 force-dynamic 이 될것임
+// 이렇게 하고 npm run build 하고 npm run start 를 해보면
+// 사용자가 refresh 할 때마다 database 를 호출하게 됨
+
+// 🔹 force-dynamic
+// static => dynamic 으로 만들어라
+// 이러면 페이지를 refresh 할 때마다 database 가 호출 됨
+// export const dynamic = 'force-dynamic';
+
+// 🔶 세 번째 옵션
+// 🔹 revalidate
+// revalidate 는 특정한 시간에 페이지를 재검증하도록 Next.js 에게 지시할 수 있음
+// nextCache 로 revalidate 한 것처럼 route 에 대해서도 동일한 것을 할 수 있음
+// 이건 pruduction mode(운영 모드) 에서 빌드했을 때 작동 함
+// 먼저 production mode 에서 build 한 다음 npm run start 를 해야 함
+// force-dynamic 을 하지 않는 대신 revalidate 함
+// 내 페이지는 static 페이지로 돌아감. 이는 ㅅ용자가 refresh 할 때마다 database 를 호출하지 않는 것을 의미함
+// 하지만 Next.js 는 60초 후에 재검증을 할거고, 페이지는 새로운 request 를 받게 될 것임
+// 👍 이 조합이 좋은 것 같음
+// 사용자가 접근하면 컨텐츠는 준비되어 있고 database 를 건드리지도 않은 static 페이지를 제공
+// 그리고 타임을 지정함. 페이지가 업데이트 되길 원하는 시간을 정함.
+// 그러면 Next.js 는 자동으로 database 를 호출하고 모든 작업을 다시 수행함.
+export const revalidate = 60;
+
 export default async function Products() {
-  // 🔹 development mode 와 production mode 의 차이를 보기 위해
-  // getCachedProducts() 의 사용을 잠시 중단 getInitialProducts 로 바꿈
   const initialProducts = await getInitialProducts();
   const revalidate = async () => {
     'use server';
