@@ -391,161 +391,313 @@
 //   );
 // }
 
-//////////////////////////////////////////////////
-// ✅ 2024 Caching
-// ✅ 13-4. revalidateTag
+// //////////////////////////////////////////////////
+// // ✅ 2024 Caching
+// // ✅ 13-4. revalidateTag
 
-// 🔶 두 번째 옵션
-// 이번엔 두번째, 우리가 요청했을 때 데이터를 새로고침 하는 방법. 두 가지 방법이 있다
-// 🔹 2-2. revalidateTag
-// 태그를 기반으로 새로고침하는 방법. 이 방법으로 하면 오직 이 태그를 가진 cache만 새로고침 됨
+// // 🔶 두 번째 옵션
+// // 이번엔 두번째, 우리가 요청했을 때 데이터를 새로고침 하는 방법. 두 가지 방법이 있다
+// // 🔹 2-2. revalidateTag
+// // 태그를 기반으로 새로고침하는 방법. 이 방법으로 하면 오직 이 태그를 가진 cache만 새로고침 됨
 
-import db from '@/lib/db';
-import getSession from '@/lib/session';
-import { formatToWon } from '@/lib/utils';
-import { UserIcon } from '@heroicons/react/24/solid';
-import Image from 'next/image';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { unstable_cache as nextCache, revalidateTag } from 'next/cache';
+// import db from '@/lib/db';
+// import getSession from '@/lib/session';
+// import { formatToWon } from '@/lib/utils';
+// import { UserIcon } from '@heroicons/react/24/solid';
+// import Image from 'next/image';
+// import Link from 'next/link';
+// import { notFound } from 'next/navigation';
+// import { unstable_cache as nextCache, revalidateTag } from 'next/cache';
 
-async function getIsOwner(userId: number) {
-  const session = await getSession();
-  if (session.id) {
-    return session.id === userId;
-  }
-  return false;
-}
+// async function getIsOwner(userId: number) {
+//   const session = await getSession();
+//   if (session.id) {
+//     return session.id === userId;
+//   }
+//   return false;
+// }
 
-// 🚩 데이터베이스에 접근하는 함수 두 개
-// 🔹 제품에 대한 모든 데이터 가져옴. 제품을 업로드한 user 에 대한 데이터까지 가져옴.
-// ProductDetail 페이지에 넣을 제품의 모든 데이터를 가져오는데 쓰임
-async function getProduct(id: number) {
-  console.log('product');
-  // await new Promise((resolve) => setTimeout(resolve, 10000));
-  const product = await db.product.findUnique({
-    where: {
-      id: id,
-    },
-    include: {
-      user: {
-        select: {
-          username: true,
-          avatar: true,
-        },
-      },
-    },
-  });
-  return product;
-}
+// // 🚩 데이터베이스에 접근하는 함수 두 개
+// // 🔹 제품에 대한 모든 데이터 가져옴. 제품을 업로드한 user 에 대한 데이터까지 가져옴.
+// // ProductDetail 페이지에 넣을 제품의 모든 데이터를 가져오는데 쓰임
+// async function getProduct(id: number) {
+//   console.log('product');
+//   // await new Promise((resolve) => setTimeout(resolve, 10000));
+//   const product = await db.product.findUnique({
+//     where: {
+//       id: id,
+//     },
+//     include: {
+//       user: {
+//         select: {
+//           username: true,
+//           avatar: true,
+//         },
+//       },
+//     },
+//   });
+//   return product;
+// }
 
-const getCachedProduct = nextCache(getProduct, ['product-detail'], {
-  tags: ['product-detail', 'xxxx'],
-});
+// const getCachedProduct = nextCache(getProduct, ['product-detail'], {
+//   tags: ['product-detail', 'xxxx'],
+// });
 
-// 🔹 제품의 제목만 가져옴.
-// 이건 오직 generateMetadata 에서만 쓰임
-async function getProductTitle(id: number) {
-  console.log('title');
-  const product = await db.product.findUnique({
-    where: {
-      id: id,
-    },
-    select: {
-      title: true,
-    },
-  });
-  return product;
-}
+// // 🔹 제품의 제목만 가져옴.
+// // 이건 오직 generateMetadata 에서만 쓰임
+// async function getProductTitle(id: number) {
+//   console.log('title');
+//   const product = await db.product.findUnique({
+//     where: {
+//       id: id,
+//     },
+//     select: {
+//       title: true,
+//     },
+//   });
+//   return product;
+// }
 
-// 하지만 getProductTitle 을 호출, 사용할 때 id 를 넘겨주고 있지 않다.
-// 왜냐면 nextCache 가 자동으로 getProductTitle 이 함수에 보낸 argument 를 제공하기 때문이다
-// 이렇게 함수의 이름만 쓰는 것이 id 를 받아서 그 id 를 getProductTitle 에 보내주는 것과 같다. (id:number) => getProductTitle(id),
-// getCachedProductTitle 를 호출해서 argument(id) 를 보내면 이 argument 는 자동으로 nextCache 의 첫 번째 함수로 보내지기 때문임
-// key 는 유니크해야 함 ['product-title'], getProductTitle 이 함수에 의해 return 된 데이터는 이 key 를 이용해서 cache 에 저장되기 때문. 이 애플리케이션 전체서 유일무이해야함
-// 하지만 tages 는 딱히 유일하지 않아도 됨. 이름 똑같지 않아도 됨.
-// 애플리케이션 있는 여러 cache 들은 똑같은 tags 를 공유할 수 있다
-const getCachedProductTitle = nextCache(getProductTitle, ['product-title'], {
-  tags: ['product-title', 'xxxx'],
-});
+// // 하지만 getProductTitle 을 호출, 사용할 때 id 를 넘겨주고 있지 않다.
+// // 왜냐면 nextCache 가 자동으로 getProductTitle 이 함수에 보낸 argument 를 제공하기 때문이다
+// // 이렇게 함수의 이름만 쓰는 것이 id 를 받아서 그 id 를 getProductTitle 에 보내주는 것과 같다. (id:number) => getProductTitle(id),
+// // getCachedProductTitle 를 호출해서 argument(id) 를 보내면 이 argument 는 자동으로 nextCache 의 첫 번째 함수로 보내지기 때문임
+// // key 는 유니크해야 함 ['product-title'], getProductTitle 이 함수에 의해 return 된 데이터는 이 key 를 이용해서 cache 에 저장되기 때문. 이 애플리케이션 전체서 유일무이해야함
+// // 하지만 tages 는 딱히 유일하지 않아도 됨. 이름 똑같지 않아도 됨.
+// // 애플리케이션 있는 여러 cache 들은 똑같은 tags 를 공유할 수 있다
+// const getCachedProductTitle = nextCache(getProductTitle, ['product-title'], {
+//   tags: ['product-title', 'xxxx'],
+// });
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
-  // 여기서는 getCachedProductTitle 를 호출할 때 제품의 id 를 보내주고 있다
-  // 왜냐하면 getProductTitle 함수는 우리에게 우리가 데이터베이스에 찾고 싶은 제품의 id 를 보내달라고 요구하기 때문이다
-  const product = await getCachedProductTitle(Number(params.id));
-  return {
-    title: product?.title,
-  };
-}
+// export async function generateMetadata({ params }: { params: { id: string } }) {
+//   // 여기서는 getCachedProductTitle 를 호출할 때 제품의 id 를 보내주고 있다
+//   // 왜냐하면 getProductTitle 함수는 우리에게 우리가 데이터베이스에 찾고 싶은 제품의 id 를 보내달라고 요구하기 때문이다
+//   const product = await getCachedProductTitle(Number(params.id));
+//   return {
+//     title: product?.title,
+//   };
+// }
 
-//
-export default async function ProductDetail({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const id = Number(params.id);
-  if (isNaN(id)) {
-    return notFound();
-  }
-  const product = await getCachedProduct(id);
-  if (!product) {
-    return notFound();
-  }
-  const isOwner = await getIsOwner(product.userId);
-  const revalidate = async () => {
-    'use server';
-    revalidateTag('xxxx'); // ⚡ 새로고침하고 싶은 태그를 여기 넣어줌, 어떻게 태그 하나가 여러 cache 들을 새로고침하는지 보여주기 위해서 xxxx 넣어줌
-  };
-  return (
-    <div className="pb-40">
-      <div className="relative aspect-square">
-        <Image
-          fill
-          className="object-cover"
-          src={product.photo}
-          alt={product.title}
-        />
-      </div>
-      <div className="p-5 flex items-center gap-3 border-b border-neutral-700">
-        <div className="size-10 overflow-hidden rounded-full">
-          {product.user.avatar !== null ? (
-            <Image
-              src={product.user.avatar}
-              width={40}
-              height={40}
-              alt={product.user.username}
-            />
-          ) : (
-            <UserIcon />
-          )}
-        </div>
-        <div>
-          <h3>{product.user.username}</h3>
-        </div>
-      </div>
-      <div className="p-5">
-        <h1 className="text-2xl font-semibold">{product.title}</h1>
-        <p>{product.description}</p>
-      </div>
-      <div className="fixed w-full bottom-0  p-5 pb-10 bg-neutral-800 flex justify-between items-center max-w-screen-sm">
-        <span className="font-semibold text-xl">
-          {formatToWon(product.price)}원
-        </span>
-        {isOwner ? (
-          <form action={revalidate}>
-            <button className="bg-red-500 px-5 py-2.5 rounded-md text-white font-semibold">
-              Revalidata title cache
-            </button>
-          </form>
-        ) : null}
-        <Link
-          className="bg-orange-500 px-5 py-2.5 rounded-md text-white font-semibold"
-          href={``}
-        >
-          채팅하기
-        </Link>
-      </div>
-    </div>
-  );
-}
+// //
+// export default async function ProductDetail({
+//   params,
+// }: {
+//   params: { id: string };
+// }) {
+//   const id = Number(params.id);
+//   if (isNaN(id)) {
+//     return notFound();
+//   }
+//   const product = await getCachedProduct(id);
+//   if (!product) {
+//     return notFound();
+//   }
+//   const isOwner = await getIsOwner(product.userId);
+//   const revalidate = async () => {
+//     'use server';
+//     revalidateTag('xxxx'); // ⚡ 새로고침하고 싶은 태그를 여기 넣어줌, 어떻게 태그 하나가 여러 cache 들을 새로고침하는지 보여주기 위해서 xxxx 넣어줌
+//   };
+//   return (
+//     <div className="pb-40">
+//       <div className="relative aspect-square">
+//         <Image
+//           fill
+//           className="object-cover"
+//           src={product.photo}
+//           alt={product.title}
+//         />
+//       </div>
+//       <div className="p-5 flex items-center gap-3 border-b border-neutral-700">
+//         <div className="size-10 overflow-hidden rounded-full">
+//           {product.user.avatar !== null ? (
+//             <Image
+//               src={product.user.avatar}
+//               width={40}
+//               height={40}
+//               alt={product.user.username}
+//             />
+//           ) : (
+//             <UserIcon />
+//           )}
+//         </div>
+//         <div>
+//           <h3>{product.user.username}</h3>
+//         </div>
+//       </div>
+//       <div className="p-5">
+//         <h1 className="text-2xl font-semibold">{product.title}</h1>
+//         <p>{product.description}</p>
+//       </div>
+//       <div className="fixed w-full bottom-0  p-5 pb-10 bg-neutral-800 flex justify-between items-center max-w-screen-sm">
+//         <span className="font-semibold text-xl">
+//           {formatToWon(product.price)}원
+//         </span>
+//         {isOwner ? (
+//           <form action={revalidate}>
+//             <button className="bg-red-500 px-5 py-2.5 rounded-md text-white font-semibold">
+//               Revalidata title cache
+//             </button>
+//           </form>
+//         ) : null}
+//         <Link
+//           className="bg-orange-500 px-5 py-2.5 rounded-md text-white font-semibold"
+//           href={``}
+//         >
+//           채팅하기
+//         </Link>
+//       </div>
+//     </div>
+//   );
+// }
+
+// //////////////////////////////////////////////////
+// // ✅ 2024 Caching
+// // ✅ 13-5. fetch Cache
+
+// // ✨
+// // NextJS 프로젝트 작업할 때 이렇게 데이터베이스에 직접 접근하진 않을 것이다
+// // 보통 다른 서버에 있는 API 로부터 데이터를 fetch 해옴
+// // 만약에 서버 컴포넌트에서 fethc requests 를 쓰고 있다면, 여러분이 데이터를 fetch 할 때, 그리고 headers 나 cookies 를 쓰지 않을 때
+// // fetch('https://api.com') 이 fethc request 는 자동으로 cache 가 됨
+// // 따라서 API 한테 get requests 해줄 때는 nextCache  를 사용하지 않아도 된다
+// // 왜냐하면 fetch 함수가 NextJS 에서 추가기능들을 갖고 있기 때문
+// // nextCache 함수와 동일한 속성을 제공해준다
+// // nextCache 는 다른 데이터를 cache 하는 데 사용 됨. 예를 들면 데이터베이스에서 직접 오는 데이터 같은 것에.
+
+// // 캐싱이 안되는 요청들
+
+// // 캐싱 안함
+// // 1. post request
+// // 2. cookies, headers 사용
+// // 3. server action에 있는 fetchr request
+
+// // ❌ 아래 코드는 실제로 사용 X. 설명을 위한 것. 에러남.
+// import db from '@/lib/db';
+// import getSession from '@/lib/session';
+// import { formatToWon } from '@/lib/utils';
+// import { UserIcon } from '@heroicons/react/24/solid';
+// import Image from 'next/image';
+// import Link from 'next/link';
+// import { notFound } from 'next/navigation';
+// import {
+//   unstable_cache as nextCache,
+//   revalidatePath,
+//   revalidateTag,
+// } from 'next/cache';
+
+// async function getIsOwner(userId: number) {
+//   const session = await getSession();
+//   if (session.id) {
+//     return session.id === userId;
+//   }
+//   return false;
+// }
+
+// async function getProduct(id: number) {
+//   fetch('https://api.com', {
+//     next: {
+//       revalidate: 60,
+//       tags: ['hello'],
+//     },
+//   });
+// }
+
+// const getCachedProduct = nextCache(getProduct, ['product-detail'], {
+//   revalidate: 60,
+//   tags: ['product-detail', 'hello'],
+// });
+
+// async function getProductTitle(id: number) {
+//   console.log('title');
+//   const product = await db.product.findUnique({
+//     where: {
+//       id,
+//     },
+//     select: {
+//       title: true,
+//     },
+//   });
+//   return product;
+// }
+
+// const getCachedProductTitle = nextCache(getProductTitle, ['product-title'], {
+//   tags: ['product-title', 'xxxx'],
+// });
+
+// export async function generateMetadata({ params }: { params: { id: string } }) {
+//   const product = await getCachedProductTitle(Number(params.id));
+//   return {
+//     title: product?.title,
+//   };
+// }
+
+// export default async function ProductDetail({
+//   params,
+// }: {
+//   params: { id: string };
+// }) {
+//   const id = Number(params.id);
+//   if (isNaN(id)) {
+//     return notFound();
+//   }
+//   const product = await getCachedProduct(id);
+//   if (!product) {
+//     return notFound();
+//   }
+//   const isOwner = await getIsOwner(product.userId);
+//   const revalidate = async () => {
+//     'use server';
+//     revalidatePath('/home');
+//   };
+//   return (
+//     <div className="pb-40">
+//       <div className="relative aspect-square">
+//         <Image
+//           className="object-cover"
+//           fill
+//           src={`${product.photo}/width=500,height=500`}
+//           alt={product.title}
+//         />
+//       </div>
+//       <div className="p-5 flex items-center gap-3 border-b border-neutral-700">
+//         <div className="size-10 overflow-hidden rounded-full">
+//           {product.user.avatar !== null ? (
+//             <Image
+//               src={product.user.avatar}
+//               width={40}
+//               height={40}
+//               alt={product.user.username}
+//             />
+//           ) : (
+//             <UserIcon />
+//           )}
+//         </div>
+//         <div>
+//           <h3>{product.user.username}</h3>
+//         </div>
+//       </div>
+//       <div className="p-5">
+//         <h1 className="text-2xl font-semibold">{product.title}</h1>
+//         <p>{product.description}</p>
+//       </div>
+//       <div className="fixed w-full bottom-0  p-5 pb-10 bg-neutral-800 flex justify-between items-center max-w-screen-sm">
+//         <span className="font-semibold text-xl">
+//           {formatToWon(product.price)}원
+//         </span>
+//         {isOwner ? (
+//           <form action={revalidate}>
+//             <button className="bg-red-500 px-5 py-2.5 rounded-md text-white font-semibold">
+//               Revalidate title cache
+//             </button>
+//           </form>
+//         ) : null}
+//         <Link
+//           className="bg-orange-500 px-5 py-2.5 rounded-md text-white font-semibold"
+//           href={``}
+//         >
+//           채팅하기
+//         </Link>
+//       </div>
+//     </div>
+//   );
+// }
