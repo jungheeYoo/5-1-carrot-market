@@ -330,34 +330,95 @@
 // // 'home-products' 이 이름으로 cache 에 넣어줌
 // // 그래서 두 번째로 페이지를 새로고침 할 때는 NextJS 는 home-products 에 데이터가 있다는 것을 찾게 될거라서 getInitialProducts 이 함수는 더이상 사용하지 않을거고, 이 데이터베이스는 호출되지 않음
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 Caching
+// // ✅ 13-2. revalidate
+// // 첫 번째 옵션
+// // (갱신)- 만료 기간에 따라 데이터를 새로고침 방법
+// // 시간이 지나면 cache 안에 있는 데이터는 만료 됨
+// // nextCache 함수의 세 번째 argument 에 object 로 보내줌
+// // 원하면 revalidate 과 tags 를 보내줄 수 있다
+
+// // 🔶 데이터를 어떻게 갱신하는지? 데이터를 어떻게 다시 새로 고침해주는지
+// // nextCache 의 요점은 데이터가 변경되지 않았을시에는 데이터베이스에 접근하지 않음.
+// // 하지만 새로운 데이터가 있다면 cache 를 새로고침 할 방법 찾아야 함
+// // 따라서 user 가 최신 데이터를 볼 수 있을뿐만 아니라, 새로운 데이터가 없을 땐 user 가
+// // 데이터베이스에 접근하지 않아도 되도록
+// // cache 안에 있는 데이터를 새로고침 하는 방법엔 세 가지 옵션이 있다
+
+// import ProductList from '@/components/product-list';
+// import db from '@/lib/db';
+// import { PlusIcon } from '@heroicons/react/24/solid';
+// import { Prisma } from '@prisma/client';
+// import { unstable_cache as nextCache } from 'next/cache';
+// import Link from 'next/link';
+
+// // ✨ revalidate : 함수가 처음으로 호출되는 순간 작동해 user 가 페이지를 다시 요청하는데 60초가 지나지 않았다면 nextCache 는 cache 안에 있는 데이터를 return  함
+// // 만약 user 가 페이지를 다시 요청하는데  60초가 지난 상태면 cache 안에 있는 데이터는 너무 오래됐다, 최신이 아니다라고 간주함
+// // 그래서 NextJS 는 최신 정보를 불러오기 위해 getInitialProducts 를 다시 호출하고 60초는 다시 작동함. 60초 마다가 아님. 60초가 지난 후 새로운 요청이 있다면 그때 NextJS 가 이 함수를 다시 호출할거라는 말이다.
+// const getCachedProducts = nextCache(getInitialProducts, ['home-products'], {
+//   revalidate: 60,
+// });
+
+// async function getInitialProducts() {
+//   console.log('hit!!!!');
+//   const products = await db.product.findMany({
+//     select: {
+//       title: true,
+//       price: true,
+//       created_at: true,
+//       photo: true,
+//       id: true,
+//     },
+//     orderBy: {
+//       created_at: 'desc',
+//     },
+//   });
+//   return products;
+// }
+
+// export type InitialProducts = Prisma.PromiseReturnType<
+//   typeof getInitialProducts
+// >;
+
+// export const metadata = {
+//   title: 'Home',
+// };
+
+// export default async function Products() {
+//   const initialProducts = await getCachedProducts();
+//   return (
+//     <div>
+//       <ProductList initialProducts={initialProducts} />
+//       <Link
+//         href="/products/add"
+//         className="bg-orange-500 flex items-center justify-center rounded-full size-16 fixed bottom-24 right-8 text-white transition-colors hover:bg-orange-400"
+//       >
+//         <PlusIcon className="size-10" />
+//       </Link>
+//     </div>
+//   );
+// }
+
 //////////////////////////////////////////////////
 // ✅ 2024 Caching
-// ✅ 13-2. revalidate
-// 첫 번째 옵션
-// (갱신)- 만료 기간에 따라 데이터를 새로고침
-// nextCache 함수의 세 번째 argument 에 object 로 보내줌
-// 원하면 revalidate 과 tags 를 보내줄 수 있다
-
-// 🔶 데이터를 어떻게 갱신하는지? 데이터를 어떻게 다시 새로 고침해주는지
-// nextCache 의 요점은 데이터가 변경되지 않았을시에는 데이터베이스에 접근하지 않음.
-// 하지만 새로운 데이터가 있다면 cache 를 새로고침 할 방법 찾아야 함
-// 따라서 user 가 최신 데이터를 볼 수 있을뿐만 아니라, 새로운 데이터가 없을 땐 user 가
-// 데이터베이스에 접근하지 않아도 되도록
-// cache 안에 있는 데이터를 새로고침 하는 방법엔 세 가지 옵션이 있다
+// ✅ 13-3. revalidatePath
+// 두 번째 옵션
+// revalidatePath (특정 경로(Path)) - 요청했을 때 데이터를 새로고침하는 방법, 요청형 새로고침
+// 이번엔 두번째, 우리가 요청했을 때 데이터를 새로고침 하는 방법. 두 가지 방법이 있다
+// 2-1. revalidatePath (특정 경로(Path))
+// 첫 번째 방법 URL을 타겟팅한다
+// =>'NextJS에게 /home 페이지에와 연결되어있는 모든 데이터를 새로고침 해라' 가장 편한 방법
+// 대신 많은 제어권을 가질 순 없다
 
 import ProductList from '@/components/product-list';
 import db from '@/lib/db';
 import { PlusIcon } from '@heroicons/react/24/solid';
 import { Prisma } from '@prisma/client';
-import { unstable_cache as nextCache } from 'next/cache';
+import { unstable_cache as nextCache, revalidatePath } from 'next/cache';
 import Link from 'next/link';
 
-// ✨ revalidate : 함수가 처음으로 호출되는 순간 작동해 user 가 페이지를 다시 요청하는데 60초가 지나지 않았다면 nextCache 는 cache 안에 있는 데이터를 return  함
-// 만약 user 가 페이지를 다시 요청하는데  60초가 지난 상태면 cache 안에 있는 데이터는 너무 오래됐다, 최신이 아니다라고 간주함
-// 그래서 NextJS 는 최신 정보를 불러오기 위해 getInitialProducts 를 다시 호출하고 60초는 다시 작동함. 60초 마다가 아님. 60초가 지난 후 새로운 요청이 있다면 그때 NextJS 가 이 함수를 다시 호출할거라는 말이다.
-const getCachedProducts = nextCache(getInitialProducts, ['home-products'], {
-  revalidate: 60,
-});
+const getCachedProducts = nextCache(getInitialProducts, ['home-products']);
 
 async function getInitialProducts() {
   console.log('hit!!!!');
@@ -386,9 +447,20 @@ export const metadata = {
 
 export default async function Products() {
   const initialProducts = await getCachedProducts();
+  // 🔹 revalidate 라는 server action 만들어줌
+  // 이건 server component 안에 있기 때문에 inline server action 이여도 됨
+  // revalidate server action 에서 할 것은 여기서 revalidatePath 함수 호출
+  const revalidate = async () => {
+    'use server';
+    revalidatePath('/home');
+  };
   return (
     <div>
       <ProductList initialProducts={initialProducts} />
+      {/* revalidate 씀 */}
+      <form action={revalidate}>
+        <button>Revalidate</button>
+      </form>
       <Link
         href="/products/add"
         className="bg-orange-500 flex items-center justify-center rounded-full size-16 fixed bottom-24 right-8 text-white transition-colors hover:bg-orange-400"
