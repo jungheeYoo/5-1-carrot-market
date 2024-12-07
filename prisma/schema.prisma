@@ -225,10 +225,75 @@
 //   userId     Int
 // }
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 Products
+// // ✅ 10-0. Introduction 
+// // Product 모델 만들기
+
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// datasource db {
+//   provider = "sqlite"
+//   url      = env("DATABASE_URL")
+// }
+
+// model User {
+//   id         Int        @id @default(autoincrement())
+//   username   String     @unique
+//   email      String?    @unique
+//   password   String?
+//   phone      String?    @unique
+//   github_id  String?    @unique
+//   avatar     String? // @default("http://dkdkdkdkdk.com/dkd.jpg") 기본 값 가능
+//   created_at DateTime   @default(now())
+//   updated_at DateTime   @updatedAt
+//   SMSToken   SMSToken[]
+//   Product    Product[]
+// }
+
+// model SMSToken {
+//   id         Int      @id @default(autoincrement())
+//   token      String   @unique
+//   created_at DateTime @default(now())
+//   updated_at DateTime @updatedAt
+//   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   userId     Int
+// }
+
+// // integer => 1,2,3,4,5
+// // float => 12.5, 3.2 등
+
+// model Product {
+//   id          Int    @id @default(autoincrement())
+//   title       String
+//   price       Float
+//   description String
+//   photo       String
+
+//   created_at DateTime @default(now())
+//   updated_at DateTime @updatedAt
+//   user       User     @relation(fields: [userId], references: [id])
+//   userId     Int
+// }
+
 //////////////////////////////////////////////////
-// ✅ 2024 Products
-// ✅ 10-0. Introduction 
-// Product 모델 만들기
+// ✅ 2024 Optimistic Updates
+// ✅ 14-0. Introduction 
+// ✨ 이번 섹션에서는 동네생활 탭 구현
+// 이 탭에서는 유저가 다른 유저들의 게시물을 읽을 수 있고
+// 게시물을 클릭하면 전체 게시물을 읽을 수 있음
+// 또한 게시물의 조회수를 추적하고 좋아요를 누르거나 댓글을 남길 수도 있음
+// 이런 기능들은 전부 하나의 공통점을 갖고 있음
+// 모두 database 에서 무언가를 바꾸는 mutation 이라는 것
+// 이것이 이 섹션을 마든 이유고, 핵심 내용은 Optimistic responses 이다
+// useOptimistic 이라는 hook 사용 예정
+// 이 hook 이 어떻게 우리 애플리케이션을 실제보다 빨라보이게 만드는지
+// database 가 작업을 완료하는 데 시간이 좀 걸리더라도 
+// 어떻게 유저에게 즉각적인 상호작용과 피드백을 제공하는지도 배움
+// 🔥 이 섹션의 요점은, mutation 을 수행하는 방법과
+// 좋아요를 누르거나 댓글을 남기거나 하는 mutation 이 엄청 빠르게 보이도록 하는 방법을 배운다
 
 generator client {
   provider = "prisma-client-js"
@@ -249,8 +314,14 @@ model User {
   avatar     String? // @default("http://dkdkdkdkdk.com/dkd.jpg") 기본 값 가능
   created_at DateTime   @default(now())
   updated_at DateTime   @updatedAt
-  SMSToken   SMSToken[]
-  Product    Product[]
+  tokens     SMSToken[] // 각각 이름 바꿈, 바꿀 수 있음
+  // 1️⃣ 이 부분은 relationship 을 역방향으로 접근한 것임
+  // 4️⃣ 따라서 이 경우에는, User 에 posts 를 넣어서 User 가 작성한 모든 Post 를 가져올 수 있다
+  // 즉 relationship 을 사용해서 해당 User 를 가리키는 모든 Post 를 가져온다는 것
+  products   Product[] // 각각 이름 바꿈
+  posts      Post[] // 각각 이름 바꿈
+  Comment    Comment[]
+  Like       Like[]
 }
 
 model SMSToken {
@@ -262,9 +333,9 @@ model SMSToken {
   userId     Int
 }
 
-// integer => 1,2,3,4,5
-// float => 12.5, 3.2 등
-
+// ❓ Product 에는 없는데, 만약 User 가 삭제되면 어떻게 될까?
+// Product 의 소유자가 계정을 삭제하면, Product 는 어떻게 될까?
+// onDelete: Cascade => Product 소유자가 계정을 삭제하면, Product 도 삭제되어야 한다는 뜻
 model Product {
   id          Int    @id @default(autoincrement())
   title       String
@@ -274,6 +345,87 @@ model Product {
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  user       User     @relation(fields: [userId], references: [id])
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     Int
+}
+
+// ⚡ 추가
+// 2️⃣ 예를 들어 여기 Post가 있고, Post 가 User 를 가리키고 있음
+// 이 말은 한 유저가 여러 게시뭄릉ㄹ 생성할 수 있다는 것이다
+// 같은 사용자를 가리키는 게시물이 여러 개 있을 수 있다
+
+// ❓ Post 의 작성자가 계정을 삭제하면? Post 도 삭제한다
+// onDelete: Cascade
+
+// 이제 Post 를 보면, Post 는 어떤 Comment 들이 자신을 가리키는지 알고 있다. 댓글이 몇 개 있고 무엇인지 앎
+// 그리고 Post 는 몇 개의 Like 가 자신을 가리키는지 알 수 있다
+model Post {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  views       Int       @default(0) // field 에서 조회수 카운트. view 는 0부터 시작
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  // 3️⃣ 그래서 이렇게 하면, Post model 이 User 를 가리키는 relationship 이 있다고 하는 것
+  // 하지만 Post model 이 User 를 가리킨다는 것은, User 도 자신을 가리키는 모든 Post 를 알 수 있어야 한다는 말이기도 함
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade) // 이 Post 는 User 에 의해 생성된다
+  userId      Int
+  // 이름 바꿈
+  // 이것이 의미 하는 건, 이제 Post 가 어떤 Comment 들이 자신을 가리키고 있는지 안다는 것
+  // Comment 가 Post 를 가리키다는 건, 여러개의 Comment 가 같은 Post 를 가리킬 수 있다는 것
+  // 즉, Post 는 어떤 Comment 들이 자신을 가리키는지 알 수 있어야 한다는 말
+  comments    Comment[]
+  likes       Like[]
+}
+
+// ⚡ 추가
+// Comment 는 두 개의 model 과 연결되어 있다.
+// 첫 번째 Comment 는 User 가 작성함
+// 두 번째, Comment 는 특정 Post 에 작성 됨.
+// Comment 는 User 가 작성하니까 userId 를 저장하고 싶음
+// 그리고 특정 Post 에 작성되니까 postId 를 저장하고 싶음
+
+// ❓ Comment 의 작성자가 계정을 삭제하면? Comment 도 삭제한다
+// 그리고 Post 가 삭제되었을 때도, 이 Comment 역시 삭제되어야 함
+model Comment {
+  id         Int      @id @default(autoincrement())
+  payload    String // 실제 댓글
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId     Int
+  postId     Int
+}
+
+// ⚡ 추가
+// 좋아요 수에는 Like model 을 사용하고 조회수는 그냥 integer 로 카운트하는 이유는
+// 유저가 게시물을 여러 번 보는 것은 상관없지만, 좋아요를 중복으로 누를 수는 없어야 하기 때문
+// 유저는 한 게시물에 좋아요를 한 번만 누를 수 있다
+// 그래서 Like model 을 만들어서 확인하는 것이다
+// Like model 을 특정 User 에 연결 함
+// User 가 Post 를 Like 하는 거니까 그 Like 를 만든 User 에게 특정 Post 에도 연결함. 
+// 그래서 Like 는 User 와 Post 에 연결됨
+// 그리고 모든 model 에는 id 라는 single field 가 있어야 함
+// 고유한 것으로 식별할 수 있는 기준이 필요함
+// 그렇다면 Like 를 unique 하게 만드는 요소는 무엇일까?
+// User 는 Post 를 한 번만 Like 할 수 있다
+// 그러니 userId 와 postId 의 조합은 uniqe 할 것임
+// 내 userId 가 1이고 postId 가 1이라면, 이 둘의 조합은 unique 하다
+// 같은 User 가 같은 Post 에 누른 또 다른 Like 는 절대 존재할 수 없다
+// 유저는 게시물에 좋아요 한 번만 누를 수 있기 때문이다
+// 따라서 userId 와 postId 의 조합이 Like 를 unigue 하게 만드는 요소이다
+
+// ❓ User 가 계정을 삭제하면, 유저의 모든 Like 가 없어져야 함
+// Post 가 삭제되면, 그 Post 의 Like 도 전부 삭제되어야 함
+model Like {
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId     Int
+  postId     Int
+
+  // 이렇게 하면 Prisma 는 userId, postId 와 둘의 조합을 보고 Like 가 고유한지 알 수 있다
+  @@id(name: "id", [userId, postId])
 }
