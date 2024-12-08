@@ -204,20 +204,269 @@
 //   );
 // }
 
+// //////////////////////////////////////////////////
+// // ✅ 2024 Optimistic Updates
+// // ✅ 14-3. Cache Tags
+
+// // 🚨 문제점
+// // 클릭할 때마다 경로를 revalidate 하기 때문에 페이지 전체가 재실행 됨
+// // 따라서 조회수가 또 올라감
+// // 🔨 해결 방법
+// // 버튼에 필요한 정보인 isLiked 와 like 개수만 별도의 cache 로 분리함
+// // 그리고 나머지 모든 정보를 다른 cache 로 분리함
+// // post cache 하고, like 개수와 isLiked 여부도 cache 함
+// // 그래서 필요한 데이터 분리
+// // 이 버튼에 필요한 데이터는 post 의 like 여부와 like 의 개수
+// // 그리고 이 게시물을 작성한 유저의 아바타, 게시물의 제목, 조회수, 상세설명 등 나머지는 cache 의 다른 곳으로 분리
+
+// import db from '@/lib/db';
+// import getSession from '@/lib/session';
+// import { formatToTimeAgo } from '@/lib/utils';
+// import { EyeIcon, HandThumbUpIcon } from '@heroicons/react/24/solid';
+// import { HandThumbUpIcon as OutlineHandThumbUpIcon } from '@heroicons/react/24/outline';
+// import { unstable_cache as nextCache, revalidateTag } from 'next/cache';
+// import Image from 'next/image';
+// import { notFound } from 'next/navigation';
+
+// async function getPost(id: number) {
+//   try {
+//     const post = await db.post.update({
+//       where: {
+//         id,
+//       },
+//       data: {
+//         views: {
+//           increment: 1,
+//         },
+//       },
+//       include: {
+//         user: {
+//           select: {
+//             username: true,
+//             avatar: true,
+//           },
+//         },
+//         _count: {
+//           select: {
+//             comments: true,
+//             // 🧹 likes count 이건 다른 데서 쓸거니 지워줌.
+//           },
+//         },
+//       },
+//     });
+//     return post;
+//   } catch (e) {
+//     return null;
+//   }
+// }
+
+// // ✨ getPost cache
+// const getCachedPost = nextCache(getPost, ['post-detail'], {
+//   tags: ['post-detail'],
+//   revalidate: 60, // 이렇게 하면 cache 를 revalidate 하지 않더라도, 이 시간마다 자동으로 revalidate 됨. 그래서 조회수가 실시간처럼 보일 것임. 완전 실시간은 아니지만.
+// });
+
+// // 😫 getSession 과 관련해서 에러가 발생해서 고침
+// // getSession 과 nextCache 를 같이 쓰면 안된다고 함! (노마드 코드 강의 댓글)
+// async function getLikeStatus(postId: number, userId: number) {
+//   // const session = await getSession();
+//   const isLiked = await db.like.findUnique({
+//     where: {
+//       id: {
+//         postId,
+//         userId: userId,
+//       },
+//     },
+//   });
+//   const likeCount = await db.like.count({
+//     where: {
+//       postId,
+//     },
+//   });
+//   return {
+//     likeCount,
+//     isLiked: Boolean(isLiked),
+//   };
+// }
+
+// // ✨ getLikeStatus cache
+// // params: { id: string }; 이 URL 에 들어있는 이 id 를 어떻게 tag 에 전달할까?
+// // nextCache 를 호출하는 이 부분을, 이 id 를 받는 함수 안에 넣어주면 된다
+// // 보다시피 postId 를 받게 되었으니 이걸 tag 에 넣을 수 있다
+// async function getCachedLikeStatus(postId: number) {
+//   const session = await getSession();
+//   const userId = session.id;
+//   const cachedOperation = nextCache(getLikeStatus, ['product-like-status'], {
+//     tags: [`like-status-${postId}`],
+//   });
+//   return cachedOperation(postId, userId!);
+// }
+
+// // 🔹 두 가지를 계산함
+// // post 가 이미 like 되었는지 알려줌
+// // like 개수도 세서 알려줌
+// // async function getLikeStatus(postId: number) {
+// //   const session = await getSession();
+// //   const isLiked = await db.like.findUnique({
+// //     where: {
+// //       id: {
+// //         postId,
+// //         userId: session.id!,
+// //       },
+// //     },
+// //   });
+// //   // 이 postId 에 대해 생성 된 like 개수를 셀 수 있음
+// //   // 이게 URL 에서 얻은 id 를 가진 post 에 대해 생성된 like 개수를 알려줌
+// //   const likeCount = await db.like.count({
+// //     where: {
+// //       postId,
+// //     },
+// //   });
+// //   return {
+// //     likeCount,
+// //     isLiked: Boolean(isLiked),
+// //   };
+// // }
+
+// // // ✨ getLikeStatus cache
+// // function getCachedLikeStatus(postId: number) {
+// //   const cachedOperation = nextCache(getLikeStatus, ['product-like-status'], {
+// //     tags: [`like-status-${postId}`],
+// //   });
+// //   return cachedOperation(postId);
+// // }
+
+// export default async function PostDetail({
+//   params,
+// }: {
+//   params: { id: string };
+// }) {
+//   const id = Number(params.id);
+//   if (isNaN(id)) {
+//     return notFound();
+//   }
+//   const post = await getCachedPost(id);
+//   if (!post) {
+//     return notFound();
+//   }
+//   const likePost = async () => {
+//     'use server';
+//     await new Promise((r) => setTimeout(r, 5000)); // 5초 시간 줌
+//     const session = await getSession();
+//     try {
+//       await db.like.create({
+//         data: {
+//           postId: id,
+//           userId: session.id!,
+//         },
+//       });
+//       // ✨ 더이상 revalidatePath 사용하지 않음
+//       // catch 된 데이터를 revalidate 하는 방법은 revalidateTag 사용
+//       // 우선 like-status-(post id) 인 tag 만 revalidate 하도록 함. 다시 고칠 예정
+//       // post id 는 여기 URL 에서 가져온 1이 된다
+//       // ✨ URL 에서 온 id 를 가진 post 의 like status 만 revalidate 함
+//       revalidateTag(`like-status-${id}`);
+//     } catch (e) {}
+//   };
+//   const dislikePost = async () => {
+//     'use server';
+//     try {
+//       const session = await getSession();
+//       await db.like.delete({
+//         where: {
+//           id: {
+//             postId: id,
+//             userId: session.id!,
+//           },
+//         },
+//       });
+//       // ✨ URL 에서 온 id 를 가진 post 의 like status 만 revalidate 함
+//       revalidateTag(`like-status-${id}`);
+//     } catch (e) {}
+//   };
+//   // getCachedLikeStatus 는 likeCount 와 isLiked 알려줌
+//   const { likeCount, isLiked } = await getCachedLikeStatus(id);
+//   return (
+//     <div className="p-5 text-white">
+//       <div className="flex items-center gap-2 mb-2">
+//         <Image
+//           width={28}
+//           height={28}
+//           className="size-7 rounded-full"
+//           src={post.user.avatar!}
+//           alt={post.user.username}
+//         />
+//         <div>
+//           <span className="text-sm font-semibold">{post.user.username}</span>
+//           <div className="text-xs">
+//             <span>{formatToTimeAgo(post.created_at.toString())}</span>
+//           </div>
+//         </div>
+//       </div>
+//       <h2 className="text-lg font-semibold">{post.title}</h2>
+//       <p className="mb-5">{post.description}</p>
+//       <div className="flex flex-col gap-5 items-start">
+//         <div className="flex items-center gap-2 text-neutral-400 text-sm">
+//           <EyeIcon className="size-5" />
+//           <span>조회 {post.views}</span>
+//         </div>
+//         <form action={isLiked ? dislikePost : likePost}>
+//           <button
+//             className={`flex items-center gap-2 text-neutral-400 text-sm border border-neutral-400 rounded-full p-2  transition-colors ${
+//               isLiked
+//                 ? 'bg-orange-500 text-white border-orange-500'
+//                 : 'hover:bg-neutral-800'
+//             }`}
+//           >
+//             {isLiked ? (
+//               <HandThumbUpIcon className="size-5" />
+//             ) : (
+//               <OutlineHandThumbUpIcon className="size-5" />
+//             )}
+//             {isLiked ? (
+//               <span> {likeCount}</span>
+//             ) : (
+//               <span>공감하기 ({likeCount})</span>
+//             )}
+//           </button>
+//         </form>
+//       </div>
+//     </div>
+//   );
+// }
+
 //////////////////////////////////////////////////
 // ✅ 2024 Optimistic Updates
-// ✅ 14-3. Cache Tags
+// ✅ 14-4. useOptimistic
 
-// 🚨 문제점
-// 클릭할 때마다 경로를 revalidate 하기 때문에 페이지 전체가 재실행 됨
-// 따라서 조회수가 또 올라감
-// 🔨 해결 방법
-// 버튼에 필요한 정보인 isLiked 와 like 개수만 별도의 cache 로 분리함
-// 그리고 나머지 모든 정보를 다른 cache 로 분리함
-// post cache 하고, like 개수와 isLiked 여부도 cache 함
-// 그래서 필요한 데이터 분리
-// 이 버튼에 필요한 데이터는 post 의 like 여부와 like 의 개수
-// 그리고 이 게시물을 작성한 유저의 아바타, 게시물의 제목, 조회수, 상세설명 등 나머지는 cache 의 다른 곳으로 분리
+// 유저들은 데이터를 요청할 수도 있고, 그들의 데이터를 보내줄 수도 있다
+// 유저가 데이터를 보내주면, 우리는 거기에 맞게 database 를 수정한다. 그게 mutation 이다
+// 유저가 우리 백엔드에 있는 리소스를 변형하는 것이다
+// 유저가 mutation 을 trigger 하면 우리에겐 두 가지 옵션이 있다
+// 하나
+// mutation 이 완전히 끝날 때까지 그냥 기다리는 것. 그리고 유저에게 mutation 진행 상항을 알려주는 것
+// create account 페이지에서 했던 것. 이 페이지에서 유저가 form 을 제출했을 때 버튼을 disable 하고 회색으로 표시하고 텍스트를 loading 으로 바꿈
+// 이렇게 해서 mutation 이 일어나고 있으니 기다려야 한다고 유저에게 알려줬었다
+// 계정을 생성하는 이런 종류의 mutation 은, 결과가 나올 때까지 기다릴 수 밖에 없다
+// 결과가 에러일 수도 있기 때문에. username 이나 email 이 이미 사용중일 수도 있으니
+// 아니면 계정이 정상적으로 생성되고, 유저를 로그인시키고 redirect 할 것이다
+// 하지만 게시물 like/disie mutation 같은 경우는, 유저에게 UI 업데이트를 보여주기 위해서 굳이 백엔드에서 mutation 이 다 끝날때 까지 기다릴 필요가 없다
+// 이 mutation 은 훨씬 덜 중요하다. 유저의 UI 를 업데이트하기 위해 백엔드에 like 가 잘 등록됐는지 확인하려고 기다릴 필요까진 없다
+// 대신 유저에게 optimistic response 를 줄 수 있다
+// optimistic response 는 마치 백엔드에서 mutation 이 성공한 것처럼 UI 를 수정하는 것
+// 유저한테 그냥 보여주는 것이다. mutation 이 성공하면 Ui 가 어떻게 보일지
+// 많은 웹사이트에서 이런 걸 볼 수 있음. 댓글을 작성하고 확인을 누르면 댓글이 바로 추가되는 경우가 있다
+// 아직 댓글이 database 에 저장되지 않았을 수도 있고, 아직 진행중이거나 시간이 좀 거릴 수 있다
+// 하지만 어떤 웹사이트들은 즉시 완료되었다는 착각이 들게 함. 이게 optimistic response 이다
+// mutation 이 성공적으로 완료된 것 처럼 보이도록 UI 가 업데이트 됨
+
+// 🔶 useOptimistic
+// UI 를 낙관적으로 업데이트할 수 있는 React Hook
+// 비동기 action 이 진행되는 동안 다른 상태를 표시할 수 있는 React Hook
+// 낙관적 상태라고 부르는 이유는, 실제로 action 을 완료하는 데 시간이 걸리더라도 유저에게 action 수행 결과를 즉시 보여주는 데 사용되기 때문
+// 그래서 백엔드에서 action 을 완료하는 데 시간이 걸리더라도, 유저에게 즉시 결과를 보여줄 수 있다
+// 이건 hook 이라서 상호작용이 필요하다
+// client 에 javascript 가 필요하고, hydration 이 필요하다는 뜻이다
 
 import db from '@/lib/db';
 import getSession from '@/lib/session';
@@ -227,6 +476,7 @@ import { HandThumbUpIcon as OutlineHandThumbUpIcon } from '@heroicons/react/24/o
 import { unstable_cache as nextCache, revalidateTag } from 'next/cache';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
+import LikeButton from '@/components/like-button';
 
 async function getPost(id: number) {
   try {
@@ -263,7 +513,7 @@ async function getPost(id: number) {
 // ✨ getPost cache
 const getCachedPost = nextCache(getPost, ['post-detail'], {
   tags: ['post-detail'],
-  revalidate: 60, // 이렇게 하면 cache 를 revalidate 하지 않더라도, 이 시간마다 자동으로 revalidate 됨. 그래서 조회수가 실시간처럼 보일 것임. 완전 실시간은 아니지만.
+  revalidate: 60,
 });
 
 // 😫 getSession 과 관련해서 에러가 발생해서 고침
@@ -349,41 +599,11 @@ export default async function PostDetail({
   if (!post) {
     return notFound();
   }
-  const likePost = async () => {
-    'use server';
-    await new Promise((r) => setTimeout(r, 5000)); // 5초 시간 줌
-    const session = await getSession();
-    try {
-      await db.like.create({
-        data: {
-          postId: id,
-          userId: session.id!,
-        },
-      });
-      // ✨ 더이상 revalidatePath 사용하지 않음
-      // catch 된 데이터를 revalidate 하는 방법은 revalidateTag 사용
-      // 우선 like-status-(post id) 인 tag 만 revalidate 하도록 함. 다시 고칠 예정
-      // post id 는 여기 URL 에서 가져온 1이 된다
-      // ✨ URL 에서 온 id 를 가진 post 의 like status 만 revalidate 함
-      revalidateTag(`like-status-${id}`);
-    } catch (e) {}
-  };
-  const dislikePost = async () => {
-    'use server';
-    try {
-      const session = await getSession();
-      await db.like.delete({
-        where: {
-          id: {
-            postId: id,
-            userId: session.id!,
-          },
-        },
-      });
-      // ✨ URL 에서 온 id 를 가진 post 의 like status 만 revalidate 함
-      revalidateTag(`like-status-${id}`);
-    } catch (e) {}
-  };
+  // ✨ likePost, dislikePost 함수 actions 라는 별도의 파일로 옮김
+  // 왜냐면 이 함수들은 더 이상 이 component 안에서 호출되지 않음. LikeButton 에서 호출 됨
+  // const likePost = async () => {}
+  // const dislikePost = async () => {}
+
   // getCachedLikeStatus 는 likeCount 와 isLiked 알려줌
   const { likeCount, isLiked } = await getCachedLikeStatus(id);
   return (
@@ -410,26 +630,10 @@ export default async function PostDetail({
           <EyeIcon className="size-5" />
           <span>조회 {post.views}</span>
         </div>
-        <form action={isLiked ? dislikePost : likePost}>
-          <button
-            className={`flex items-center gap-2 text-neutral-400 text-sm border border-neutral-400 rounded-full p-2  transition-colors ${
-              isLiked
-                ? 'bg-orange-500 text-white border-orange-500'
-                : 'hover:bg-neutral-800'
-            }`}
-          >
-            {isLiked ? (
-              <HandThumbUpIcon className="size-5" />
-            ) : (
-              <OutlineHandThumbUpIcon className="size-5" />
-            )}
-            {isLiked ? (
-              <span> {likeCount}</span>
-            ) : (
-              <span>공감하기 ({likeCount})</span>
-            )}
-          </button>
-        </form>
+        {/* ✨ 이 button 은 client component 여야 한다  */}
+        {/* ✨ 그래서 component 폴도러 가서 like-button.tsx 파일 만듦  */}
+        {/* <form><button></button></form> */}
+        <LikeButton isLiked={isLiked} likeCount={likeCount} postId={id} />
       </div>
     </div>
   );
